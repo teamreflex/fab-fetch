@@ -2,7 +2,7 @@ import chalk from "chalk"
 import { DateTime } from "luxon"
 import { bruteforceImages, buildDownloadables, fileExists } from "./files"
 import { request } from "./http"
-import { DownloadablePost, LetterTextObject, Message, ParsedMessage } from "./types"
+import { DownloadablePost, FabUser, LetterTextObject, Message, ParsedMessage } from "./types"
 
 export const fetchUnreadMessages = async (): Promise<Message[]> => {
   const userId = process.env.FAB_USER_ID
@@ -21,21 +21,45 @@ export const fetchUnreadMessages = async (): Promise<Message[]> => {
   return data.messages
 }
 
-export const fetchMessage = async (messageId: number): Promise<ParsedMessage> => {
+export const fetchMessage = async (message: Message): Promise<ParsedMessage> => {
   const userId = process.env.FAB_USER_ID
   const accessToken = process.env.FAB_ACCESS_TOKEN
 
-  const { data, error } = await request('get', `/users/${userId}/message/${messageId}`, {
+  const { data, error } = await request('get', `/users/${userId}/message/${message.id}`, {
     userid: userId,
     accessToken: accessToken
   })
 
   if (error) {
-    console.info(chalk.red(`Error fetching message #${messageId}: ${error}`))
-    process.exit()
+    console.info(chalk.red(`Error fetching message #${message.id}: ${error}`))
+    return parseMessage(message)
   }
 
   return parseMessage(data.message)
+}
+
+const parseUser = (message: Message): FabUser => {
+  if (message.isGroup === 'Y' && message.group) {
+    return {
+      id: message.userId,
+      nickName: message.group.enName,
+      name: message.group.name,
+      enName: message.group.enName,
+      profileImage: message.group.profileImage,
+      bannerImage: message.group.bannerImage,
+      statusMessage: message.group.statusMessage,
+    } as FabUser
+  }
+
+  return {
+    id: message.userId,
+    nickName: message.user.nickName,
+    name: message.user.artist.name,
+    enName: message.user.artist.enName,
+    profileImage: message.user.profileImage,
+    bannerImage: message.user.artist.bannerImage,
+    statusMessage: message.user.artist.statusMessage,
+  } as FabUser
 }
 
 export const parseMessage = (message: Message): ParsedMessage => {
@@ -57,7 +81,7 @@ export const parseMessage = (message: Message): ParsedMessage => {
   const parsed = {
     id: message.id,
     createdAt: DateTime.fromMillis(message.createdAt, { zone: 'Asia/Seoul' }),
-    user: message.user,
+    user: parseUser(message),
     text: text,
     media: media,
   } as ParsedMessage
@@ -69,6 +93,7 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
   const unreadMessages = await fetchUnreadMessages()
 
   const downloadablePosts = unreadMessages
+    .filter(message => Number(message?.letter?.images?.length) > 0)
     .map(message => {
       return {
         message: message,
@@ -84,7 +109,7 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
     // pay for & fetch android posts
     // bruteforce everything else
     const message = isAndroid 
-      ? await fetchMessage(dl.message.id)
+      ? await fetchMessage(dl.message)
       : await bruteforceImages(parseMessage(dl.message))
     return {
       message: message,

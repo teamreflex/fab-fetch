@@ -20,7 +20,7 @@ export const main = async (postToSocial: boolean) => {
   const messages = await buildMessages()
 
   messages.forEach(async post => {
-    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.artist.enName)))
+    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.enName)))
 
     // download images
     await Promise.all(post.downloadables.map(async downloadable => await downloadImage(downloadable)))
