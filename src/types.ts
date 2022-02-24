@@ -132,6 +132,7 @@ export interface Message {
 export interface ParsedMessage {
   id: number,
   createdAt: DateTime,
+  emoji: string,
   user: ArtistUser,
   text: string,
   media: string[]

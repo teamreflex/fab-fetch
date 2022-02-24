@@ -69,7 +69,7 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
   const unreadMessages = await fetchUnreadMessages()
 
   const downloadablePosts = unreadMessages
-    .slice(0, 4) // remove when in prod
+    .slice(0, 1) // remove when in prod
     .map(message => {
       return {
         message: message,

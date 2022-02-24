@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "fetch": "ts-node src/app.ts",
-    "fetch-without-posting": "ts-node src/app.ts --no-posting",
-    "dev": "node --experimental-specifier-resolution=node --loader ts-node/esm src/app.ts --dev"
+    "fetch": "node --experimental-specifier-resolution=node --loader ts-node/esm src/app.ts",
+    "fetch-without-posting": "node --experimental-specifier-resolution=node --loader ts-node/esm src/app.ts --no-posting",
+    "dev": "node --experimental-specifier-resolution=node --loader ts-node/esm src/app.ts --dev",
+    "dev-without-posting": "node --experimental-specifier-resolution=node --loader ts-node/esm src/app.ts --dev --no-posting"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
     "luxon": "^2.3.1",
     "node-fetch": "^3.2.0",
     "ts-node": "^10.5.0",
+    "twitter-api-v2": "^1.11.0",
     "typescript": "^4.5.5"
   },
   "devDependencies": {
