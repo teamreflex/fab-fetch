@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Default images folder
+images/

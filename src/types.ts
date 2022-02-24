@@ -136,3 +136,22 @@ export interface ParsedMessage {
   text: string,
   media: string[]
 }
+
+export interface DownloadPath {
+  url: string,
+  folder: string,
+  fullPath: string,
+}
+
+export interface SplitUrl {
+  base: string,
+  timestamp: number,
+  date: string,
+  imageNumber: number,
+  extension: string,
+}
+
+export interface DownloadablePost {
+  message: ParsedMessage,
+  downloadables: DownloadPath[],
+}

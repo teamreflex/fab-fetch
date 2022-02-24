@@ -1,7 +1,8 @@
 import chalk from "chalk"
 import { DateTime } from "luxon"
+import { bruteforceImages, buildDownloadables, fileExists } from "./files"
 import { request } from "./http"
-import { LetterTextObject, Message, ParsedMessage } from "./types"
+import { DownloadablePost, LetterTextObject, Message, ParsedMessage } from "./types"
 
 export const fetchUnreadMessages = async (): Promise<Message[]> => {
   const userId = process.env.FAB_USER_ID
@@ -42,7 +43,7 @@ export const parseMessage = (message: Message): ParsedMessage => {
   const parsedJson = message.letter && message.letter.text
     ? JSON.parse(message.letter.text as string)
     : {}
-    if (parsedJson) {
+    if (parsedJson && parsedJson.contents) {
       text = parsedJson.contents
         .filter(({ type }: LetterTextObject) => type === 'text')
         .map(({ text }: LetterTextObject) => text)
@@ -51,13 +52,46 @@ export const parseMessage = (message: Message): ParsedMessage => {
 
   const media = message.letter
     ? message.letter.images.map(image => image.image)
-    : [message.postcard?.postcardVideo]
+    : [message.postcard?.thumbnail, message.postcard?.postcardVideo]
 
-  return {
+  const parsed = {
     id: message.id,
     createdAt: DateTime.fromMillis(message.createdAt, { zone: 'Asia/Seoul' }),
     user: message.user,
     text: text,
     media: media,
   } as ParsedMessage
+
+  return parsed
+}
+
+export const buildMessages = async (): Promise<DownloadablePost[]> => {
+  const unreadMessages = await fetchUnreadMessages()
+
+  const downloadablePosts = unreadMessages
+    .slice(0, 4) // remove when in prod
+    .map(message => {
+      return {
+        message: message,
+        downloadables: buildDownloadables(parseMessage(message)),
+      }
+    })
+    .filter(({ downloadables }) => !fileExists(downloadables[0].fullPath))
+
+  const messages = downloadablePosts.map(async dl => {
+    // must pay for posts by members using android due to unpredictable image urls
+    const isAndroid = (!!dl.message.letter && dl.message.letter.images[0].image.includes('IMAGE')) || (!!dl.message.postcard && dl.message.postcard.thumbnail.includes('IMAGE'))
+
+    // pay for & fetch android posts
+    // bruteforce everything else
+    const message = isAndroid 
+      ? await fetchMessage(dl.message.id)
+      : await bruteforceImages(parseMessage(dl.message))
+    return {
+      message: message,
+      downloadables: buildDownloadables(message),
+    } as DownloadablePost
+  })
+
+  return await Promise.all(messages)
 }
