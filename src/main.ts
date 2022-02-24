@@ -1,6 +1,7 @@
 import chalk from "chalk"
 import { login, userInfo } from "./auth"
-import { fetchMessage } from "./messages"
+import { downloadImage } from "./files"
+import { buildMessages} from "./messages"
 import { User } from "./types"
 
 export const startup = async (): Promise<User> => {
@@ -14,6 +15,10 @@ export const startup = async (): Promise<User> => {
 }
 
 export const main = async () => {
-  const message = await fetchMessage(225)
-  console.log(message)
+  const messages = await buildMessages()
+
+  messages.forEach(async post => {
+    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.artist.enName)))
+    await Promise.all(post.downloadables.map(async downloadable => await downloadImage(downloadable)))
+  })
 }
