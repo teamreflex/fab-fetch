@@ -19,6 +19,10 @@ export const main = async (postToSocial: boolean) => {
   const twitter = twitterClient()
   const messages = await buildMessages()
 
+  if (messages.length > 0) {
+    console.info(chalk.green(`Fetched ${messages.length} messages`))
+  }
+
   messages.forEach(async post => {
     console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.enName)))
 
