@@ -38,7 +38,7 @@ export const buildPath = (name: string, date: string, imageUrl: string): Downloa
 export const buildDownloadables = (message: ParsedMessage): DownloadPath[] => {
   return message.media.map(url => {
     return buildPath(
-      message.user.artist.enName,
+      message.user.enName,
       message.createdAt.toFormat('yyMMdd'),
       url,
     )
