@@ -76,7 +76,12 @@ export const parseMessage = (message: Message): ParsedMessage => {
 
   const media = message.letter
     ? message.letter.images.map(image => image.image)
-    : [message.postcard?.thumbnail, message.postcard?.postcardVideo]
+    : [message.postcard?.thumbnail]
+
+  // if the message is a postcard and we paid for it, directly download the video
+  if (!!message.postcard && message.postcard?.postcardVideo) {
+    media[0] = message.postcard?.postcardVideo
+  }
 
   const parsed = {
     id: message.id,
@@ -84,6 +89,7 @@ export const parseMessage = (message: Message): ParsedMessage => {
     user: parseUser(message),
     text: text,
     media: media,
+    isPostcard: !!message.postcard,
   } as ParsedMessage
 
   return parsed
@@ -94,6 +100,7 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
 
   const downloadablePosts = unreadMessages
     .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
+    .slice(0, 2)
     .map(message => {
       return {
         message: message,

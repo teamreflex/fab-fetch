@@ -19,13 +19,15 @@ export const formatTweet = (message: ParsedMessage): string => {
   return `[${date}] ${getEmoji(message.user.id)}\n— ${time} KST\n${message.text}`
 }
 
-export const postTweet = async (client: TwitterApi, media: DownloadPath[], text: string) => {
+export const postTweet = async (client: TwitterApi, media: DownloadPath[], text: string, isPostcard: boolean) => {
   console.info(chalk.cyan(`Posting to Twitter...`))
 
   let mediaIds = await Promise.all(
-    media.map(
-      image => client.v1.uploadMedia(image.fullPath)
-    )
+    media
+      .filter(media => isPostcard ? media.fullPath.includes('.mp4') : true)
+      .map(
+        image => client.v1.uploadMedia(image.fullPath)
+      )
   );
 
   // recursively reply to the first tweet until all images are posted

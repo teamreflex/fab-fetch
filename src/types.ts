@@ -169,6 +169,7 @@ export interface ParsedMessage {
   user: FabUser
   text: string
   media: string[]
+  isPostcard: boolean
 }
 
 export interface DownloadPath {
