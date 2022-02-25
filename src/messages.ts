@@ -93,7 +93,7 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
   const unreadMessages = await fetchUnreadMessages()
 
   const downloadablePosts = unreadMessages
-    .filter(message => Number(message?.letter?.images?.length) > 0)
+    .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
     .map(message => {
       return {
         message: message,
