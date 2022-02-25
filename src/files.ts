@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
 import { DownloadPath, ParsedMessage, SplitUrl } from "./types";
+import retry from "async-retry"
 
 export const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
@@ -16,12 +17,27 @@ export const downloadImage = async (path: DownloadPath): Promise<any> => {
   makeFolder(path.folder)
 
   const streamPipeline = promisify(pipeline);
-  const response = await fetch(path.url);
-  if (response.body !== null) {
-    return await streamPipeline(response.body, createWriteStream(path.fullPath));
-  } else {
-    return false
-  }
+
+  return await retry(
+    async (bail: Function) => {
+      const response = await fetch(path.url);
+  
+      if (response.status === 403) {
+        // don't retry upon 403, means image doesn't exist
+        bail();
+        return;
+      }
+  
+      if (response.body !== null) {
+        return await streamPipeline(response.body, createWriteStream(path.fullPath));
+      } else {
+        return false
+      }
+    },
+    {
+      retries: 3,
+    }
+  );
 }
 
 export const buildPath = (name: string, date: string, imageUrl: string): DownloadPath => {
@@ -118,7 +134,11 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
 
   // if we've found images, replace the existing media with the found urls
   if (foundUrls.length > 0) {
-    message.media = foundUrls
+    if (isPostcard) {
+      message.media = message.media.concat(foundUrls)
+    } else {
+      message.media = foundUrls
+    }
   }
 
   return message

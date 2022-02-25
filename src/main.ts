@@ -31,7 +31,7 @@ export const main = async (postToSocial: boolean) => {
 
     // post to twitter
     if (postToSocial) {
-      await postTweet(twitter, post.downloadables, formatTweet(post.message))
+      await postTweet(twitter, post.downloadables, formatTweet(post.message), post.message.isPostcard)
     }
   })
 }
