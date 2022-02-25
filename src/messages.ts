@@ -100,7 +100,6 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
 
   const downloadablePosts = unreadMessages
     .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
-    .slice(0, 2)
     .map(message => {
       return {
         message: message,
