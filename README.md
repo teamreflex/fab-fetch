@@ -23,6 +23,10 @@ $ npm run fetch-without-posting # Runs according to the timeout (ms) and skips T
 ```
 
 ## Caveats & Considerations
+- There is no need to go manually view a post before the bot reads it.
+    - The "this message requires points to open" is client side.
+    - As soon as a post is retreived from the API, their backend deducts points.
+    - Because of this, anything you want to do with the API can be entirely automated.
 - Message fetching is done via the "unread" messages endpoint, as in those colored blocks you see on the homepage.
     - This means that you must manually subscribe to each member or else their posts won't come through.
     - As soon as you open a message in the app, it's now marked as "read" and is removed from this endpoint.
