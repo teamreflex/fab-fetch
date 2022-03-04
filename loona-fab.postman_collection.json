@@ -1,0 +1,734 @@
+{
+	"info": {
+		"_postman_id": "19df5fef-b289-4208-9bb3-1860e5a2857b",
+		"name": "LOONA Fab",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.request.upsertHeader({ key: 'userid', 'value': '0'})\r",
+									"pm.request.upsertHeader({ key: 'accesstoken', 'value': ''})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "key",
+									"value": "accesstoken",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "email",
+									"value": "test@test.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "password",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/signin",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"signin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.request.upsertHeader({ key: 'userid', 'value': '0'})\r",
+									"pm.request.upsertHeader({ key: 'accesstoken', 'value': ''})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "key",
+									"value": "accesstoken",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "email",
+									"value": "test@test.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "nickname",
+									"value": "Kairu",
+									"type": "text"
+								},
+								{
+									"key": "authcode",
+									"value": "emailverify",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/signup",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Email Verify",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "key",
+									"value": "accesstoken",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "userid",
+								"value": "0",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "email",
+									"value": "test@test.com",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/signup/email/verify",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"signup",
+								"email",
+								"verify"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User Info",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/info",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"info"
+							]
+						},
+						"description": "User profile page, including followed/subscribed artists."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Artist",
+			"item": [
+				{
+					"name": "LOONA Artist Page",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/groups/1",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"groups",
+								"1"
+							]
+						},
+						"description": "Shows the BlockBerry Creative artist page, as well as all nested members."
+					},
+					"response": []
+				},
+				{
+					"name": "User Followed Artists",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/artists",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"artists"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Artist Page (JinSoul)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/artists/8",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"artists",
+								"8"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Artist Messages (JinSoul)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/artists/8/messages",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"artists",
+								"8",
+								"messages"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Messages",
+			"item": [
+				{
+					"name": "Messages (Unauthenticated)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/messages",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"messages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/messages",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"messages"
+							]
+						},
+						"description": "Shows all unread and unpaid messages."
+					},
+					"response": []
+				},
+				{
+					"name": "Saved Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/messages/saved",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"messages",
+								"saved"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Message 126 (JinSoul)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/126",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"message",
+								"126"
+							]
+						},
+						"description": "Shows a single message. Making a request to a message immediately opens and pays for it."
+					},
+					"response": []
+				},
+				{
+					"name": "Message 126 Save (JinSoul)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/126/save",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"message",
+								"126",
+								"save"
+							]
+						},
+						"description": "Shows a single message. Making a request to a message immediately opens and pays for it."
+					},
+					"response": []
+				},
+				{
+					"name": "Message 126 Unsave (JinSoul)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/126/unsave",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"message",
+								"126",
+								"unsave"
+							]
+						},
+						"description": "Shows a single message. Making a request to a message immediately opens and pays for it."
+					},
+					"response": []
+				},
+				{
+					"name": "Message 126 Like (JinSoul)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/126/like",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"message",
+								"126",
+								"like"
+							]
+						},
+						"description": "Shows a single message. Making a request to a message immediately opens and pays for it."
+					},
+					"response": []
+				},
+				{
+					"name": "Message 126 Unlike (JinSoul)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/126/unlike",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"message",
+								"126",
+								"unlike"
+							]
+						},
+						"description": "Shows a single message. Making a request to a message immediately opens and pays for it."
+					},
+					"response": []
+				},
+				{
+					"name": "Message 126 Comments (JinSoul)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/126/comments",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userId}}",
+								"message",
+								"126",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userid}}/notifications",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userid}}",
+								"notifications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Notification Read",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userid}}/notification/14659130/read",
+							"protocol": "https",
+							"host": [
+								"vip-fab-api",
+								"myfab",
+								"tv"
+							],
+							"path": [
+								"fapi",
+								"2",
+								"users",
+								"{{userid}}",
+								"notification",
+								"14659130",
+								"read"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Message Fetch",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vip-fab-api.myfab.tv/fapi/2/users/{{userId}}/message/67",
+					"protocol": "https",
+					"host": [
+						"vip-fab-api",
+						"myfab",
+						"tv"
+					],
+					"path": [
+						"fapi",
+						"2",
+						"users",
+						"{{userId}}",
+						"message",
+						"67"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Banned Words",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://vip-fab-api.myfab.tv/fapi/2/banned_words",
+					"protocol": "https",
+					"host": [
+						"vip-fab-api",
+						"myfab",
+						"tv"
+					],
+					"path": [
+						"fapi",
+						"2",
+						"banned_words"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "apikey",
+		"apikey": [
+			{
+				"key": "value",
+				"value": "...",
+				"type": "string"
+			},
+			{
+				"key": "in",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "key",
+				"value": "accesstoken",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// add user agent",
+					"pm.request.addHeader({ key: 'user-agent', 'value': 'fab|android|playstore|1.0.4|10|Android SDK built for x86|google|en|US'})",
+					"// add user id",
+					"pm.request.addHeader({ key: 'userid', 'value': '17466'})"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "userId",
+			"value": "17466"
+		}
+	]
+}
