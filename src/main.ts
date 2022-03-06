@@ -16,6 +16,10 @@ export const startup = async (): Promise<User> => {
 }
 
 export const main = async (postToSocial: boolean) => {
+  let twitter: any = null
+  if (postToSocial) {
+    const twitter = twitterClient()
+  }
   const messages = await buildMessages()
 
   if (messages.length > 0) {
@@ -30,7 +34,6 @@ export const main = async (postToSocial: boolean) => {
 
     // post to twitter
     if (postToSocial) {
-      const twitter = twitterClient()
       await postTweet(twitter, post.downloadables, formatTweet(post.message), post.message.isPostcard)
     }
   })
