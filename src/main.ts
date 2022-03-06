@@ -18,7 +18,7 @@ export const startup = async (): Promise<User> => {
 export const main = async (postToSocial: boolean) => {
   let twitter: any = null
   if (postToSocial) {
-    const twitter = twitterClient()
+    twitter = twitterClient()
   }
   const messages = await buildMessages()
 
