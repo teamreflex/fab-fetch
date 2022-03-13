@@ -190,8 +190,8 @@ export const saveMessages = async (): Promise<Message[]> => {
     await downloadMessage(parsed)
 
     // save to the database
-    console.info(chalk.green(`Saving message #${parsed.id} to the database`))
     messages.push(await buildMessage(parsed))
+    console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName)))
   }
 
   return messages

@@ -15,7 +15,7 @@ if (devMode) {
 }
 
 createConnection().then(async connection => {
-  console.info(chalk.green('Database connected!'))
+  console.info(chalk.bold.green('Database connected!'))
 
   // load the Fab user into memory
   if (!devMode) {
