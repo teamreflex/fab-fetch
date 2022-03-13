@@ -141,7 +141,7 @@ const saveImages = (parsedMessage: ParsedMessage): Image[] => {
   })
 }
 
-const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
+export const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
   const message = new Message()
   message.messageId = parsedMessage.id
   message.memberId = parsedMessage.user.id
@@ -157,7 +157,7 @@ const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
   return message
 }
 
-export const saveMessages = async (): Promise<Message[]> => {
+export const fetchAndFilterMessages = async (): Promise<ParsedMessage[]> => {
   // fetch messages
   const unfilteredMessages = await fetchMessages()
 
@@ -173,7 +173,7 @@ export const saveMessages = async (): Promise<Message[]> => {
   console.info(chalk.green(`Fetched ${filteredMessages.length} new messages`))
 
   // parse each message
-  const parsedMessages = await Promise.all(filteredMessages.map(async fabMessage => {
+  return await Promise.all(filteredMessages.map(async fabMessage => {
     // must pay for posts by members using android due to unpredictable image urls
     const isAndroid = (!!fabMessage.letter && fabMessage.letter.images[0].image.includes('IMAGE')) || (!!fabMessage.postcard && fabMessage.postcard.thumbnail.includes('IMAGE'))
 
@@ -181,13 +181,4 @@ export const saveMessages = async (): Promise<Message[]> => {
     // bruteforce everything else
     return isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
   }))
-
-  // save each message to the database
-  const messages: Message[] = []
-  for (const parsed of parsedMessages) {
-    const dbMessage = await buildMessage(parsed)
-    messages.push(dbMessage)
-  }
-
-  return messages
 }
