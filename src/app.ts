@@ -10,6 +10,9 @@ const devMode = process.env.ENVIRONMENT === 'dev'
 const timeout = Number(process.env.TIMEOUT)
 
 console.info(chalk.bold.cyan('Starting fab-fetch...'))
+if (devMode) {
+  console.info(chalk.bold.yellow('Development mode'))
+}
 
 createConnection().then(async connection => {
   console.info(chalk.green('Database connected!'))
