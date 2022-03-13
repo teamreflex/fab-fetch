@@ -1,5 +1,5 @@
 import fetch from "node-fetch"
-import { Response } from "./types"
+import { Response } from "./types.js"
 
 const baseUri = process.env.API_URL as string
 

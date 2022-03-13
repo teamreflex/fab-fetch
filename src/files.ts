@@ -2,25 +2,24 @@ import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { DownloadPath, ParsedMessage, SplitUrl } from "./types";
+import { ParsedMessage, SplitUrl } from "./types.js";
 import retry from "async-retry"
+import { Image } from "./entity/Image.js";
+import { Message } from "./entity/Message.js";
+import chalk from "chalk";
 
-export const makeFolder = (folder: string) => {
+const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
 }
 
-export const fileExists = (path: string): boolean => {
-  return existsSync(path)
-}
-
-export const downloadImage = async (path: DownloadPath): Promise<any> => {
-  makeFolder(path.folder)
+const downloadImage = async (image: Image): Promise<any> => {
+  makeFolder(image.folder)
 
   const streamPipeline = promisify(pipeline);
 
   return await retry(
     async (bail: Function) => {
-      const response = await fetch(path.url);
+      const response = await fetch(image.url);
   
       if (response.status === 403) {
         // don't retry upon 403, means image doesn't exist
@@ -29,7 +28,7 @@ export const downloadImage = async (path: DownloadPath): Promise<any> => {
       }
   
       if (response.body !== null) {
-        return await streamPipeline(response.body, createWriteStream(path.fullPath));
+        return await streamPipeline(response.body, createWriteStream(image.path));
       } else {
         return false
       }
@@ -40,25 +39,16 @@ export const downloadImage = async (path: DownloadPath): Promise<any> => {
   );
 }
 
-export const buildPath = (name: string, date: string, imageUrl: string): DownloadPath => {
-  const downloadFolder = process.env.DOWNLOAD_FOLDER
-  const filename = imageUrl.split('/').pop()
-
-  return {
-    url: imageUrl,
-    folder: `${downloadFolder}/${name}/${date}`,
-    fullPath: `${downloadFolder}/${name}/${date}/${filename}`
-  } as DownloadPath
-}
-
-export const buildDownloadables = (message: ParsedMessage): DownloadPath[] => {
-  return message.media.map(url => {
-    return buildPath(
-      message.user.enName,
-      message.createdAt.toFormat('yyMMdd'),
-      url,
-    )
-  })
+export const downloadMessage = async (message: Message): Promise<boolean> => {
+  try {
+    const result = await Promise.all(message.images.map(async (image: Image) => {
+      return await downloadImage(image)
+    }))
+    return true
+  } catch (e) {
+    console.info(chalk.bold.red(`Error downloading message #${message.messageId}: ${e}`))
+    return false
+  }
 }
 
 const checkForValidImage = async (url: string): Promise<boolean> => {

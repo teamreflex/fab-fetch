@@ -143,7 +143,7 @@ export interface Postcard {
   updatedAt: number
 }
 
-export interface Message {
+export interface FabMessage {
   id: number
   userId: number
   groupId: number

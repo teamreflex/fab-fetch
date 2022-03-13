@@ -1,5 +1,5 @@
-import { request } from './http'
-import { AuthResult, User } from './types'
+import { request } from './http.js'
+import { AuthResult, User } from './types.js'
 import chalk from 'chalk'
 
 // eslint-disable-next-line import/prefer-default-export

@@ -1,44 +1,55 @@
-import chalk from "chalk"
+import chalk from 'chalk'
 import { DateTime } from "luxon"
-import { bruteforceImages, buildDownloadables, fileExists } from "./files"
-import { request } from "./http"
-import { DownloadablePost, FabUser, LetterTextObject, Message, ParsedMessage } from "./types"
+import { getRepository, In } from 'typeorm'
+import { loadArtists } from './artists.js'
+import { Artist } from './entity/Artist.js'
+import { Image } from './entity/Image.js'
+import { Message, MessageType } from './entity/Message.js'
+import { bruteforceImages } from "./files.js"
+import { request } from "./http.js"
+import { getEmoji } from './emoji.js';
+import { FabUser, LetterTextObject, FabMessage, ParsedMessage } from "./types.js"
 
-export const fetchUnreadMessages = async (): Promise<Message[]> => {
-  const userId = process.env.FAB_USER_ID
-  const accessToken = process.env.FAB_ACCESS_TOKEN
-
-  const { data, error } = await request('get', `/users/${userId}/messages`, {
-    userid: userId,
-    accessToken: accessToken
-  })
-
-  if (error) {
-    console.info(chalk.red(`Error fetching messages: ${error}`))
-    process.exit()
+const parseMessage = (message: FabMessage): ParsedMessage => {
+  let text = ''
+  const parsedJson = message.letter && message.letter.text
+    ? JSON.parse(message.letter.text as string)
+    : {}
+  if (parsedJson && parsedJson.contents) {
+    text = parsedJson.contents
+      .filter(({ type }: LetterTextObject) => type === 'text')
+      .map(({ text }: LetterTextObject) => text)
+      .join('\n')
   }
 
-  return data.messages
-}
+  const media = message.letter
+    ? message.letter.images.map(image => image.image)
+    : [message.postcard?.thumbnail]
 
-export const fetchMessage = async (message: Message): Promise<ParsedMessage> => {
-  const userId = process.env.FAB_USER_ID
-  const accessToken = process.env.FAB_ACCESS_TOKEN
-
-  const { data, error } = await request('get', `/users/${userId}/message/${message.id}`, {
-    userid: userId,
-    accessToken: accessToken
-  })
-
-  if (error) {
-    console.info(chalk.red(`Error fetching message #${message.id}: ${error}`))
-    return parseMessage(message)
+  // if the message is a postcard and we paid for it, directly download it
+  if (!!message.postcard) {
+    if (message.postcard?.postcardVideo) {
+      media[0] = message.postcard?.postcardVideo
+    }
+    if (message.postcard?.postcardImage) {
+      media[0] = message.postcard?.postcardImage
+    }
   }
 
-  return parseMessage(data.message)
+  const parsed = {
+    id: message.id,
+    createdAt: DateTime.fromMillis(message.createdAt, { zone: 'Asia/Seoul' }),
+    user: parseUser(message),
+    text: text,
+    media: media,
+    emoji: getEmoji(message.userId),
+    isPostcard: !!message.postcard,
+  } as ParsedMessage
+
+  return parsed
 }
 
-const parseUser = (message: Message): FabUser => {
+const parseUser = (message: FabMessage): FabUser => {
   if (message.isGroup === 'Y' && message.group) {
     return {
       id: message.userId,
@@ -62,66 +73,113 @@ const parseUser = (message: Message): FabUser => {
   } as FabUser
 }
 
-export const parseMessage = (message: Message): ParsedMessage => {
-  let text = ''
-  const parsedJson = message.letter && message.letter.text
-    ? JSON.parse(message.letter.text as string)
-    : {}
-    if (parsedJson && parsedJson.contents) {
-      text = parsedJson.contents
-        .filter(({ type }: LetterTextObject) => type === 'text')
-        .map(({ text }: LetterTextObject) => text)
-        .join('\n')
-    }
+const fetchMessagesByArtist = async (artist: Artist): Promise<FabMessage[]> => {
+  const userId = process.env.FAB_USER_ID
+  const accessToken = process.env.FAB_ACCESS_TOKEN
 
-  const media = message.letter
-    ? message.letter.images.map(image => image.image)
-    : [message.postcard?.thumbnail]
+  const { data, error } = await request('get', `artists/${artist.artistId}/messages`, {
+    userid: userId,
+    accessToken: accessToken,
+  })
 
-  // if the message is a postcard and we paid for it, directly download the video
-  if (!!message.postcard && message.postcard?.postcardVideo) {
-    media[0] = message.postcard?.postcardVideo
+  if (error) {
+    console.info(chalk.red(`Error fetching messages: ${error}`))
+    process.exit()
   }
 
-  const parsed = {
-    id: message.id,
-    createdAt: DateTime.fromMillis(message.createdAt, { zone: 'Asia/Seoul' }),
-    user: parseUser(message),
-    text: text,
-    media: media,
-    isPostcard: !!message.postcard,
-  } as ParsedMessage
-
-  return parsed
+  return data.messages
 }
 
-export const buildMessages = async (): Promise<DownloadablePost[]> => {
-  const unreadMessages = await fetchUnreadMessages()
+const fetchMessages = async (): Promise<FabMessage[]> => {
+  const artists = await loadArtists()
+  const messages = await Promise.all(artists.map(artist => fetchMessagesByArtist(artist)))
 
-  const downloadablePosts = unreadMessages
+  return messages.flat().slice(0, 10)
+}
+
+const payForMessage = async (message: FabMessage): Promise<ParsedMessage> => {
+  const userId = process.env.FAB_USER_ID
+  const accessToken = process.env.FAB_ACCESS_TOKEN
+
+  const { data, error } = await request('get', `users/${userId}/message/${message.id}`, {
+    userid: userId,
+    accessToken: accessToken
+  })
+
+  if (error) {
+    console.info(chalk.red(`Error fetching message #${message.id}: ${error}`))
+    return parseMessage(message)
+  }
+
+  return parseMessage(data.message)
+}
+
+const saveImages = (parsedMessage: ParsedMessage): Image[] => {
+  const downloadFolder = process.env.DOWNLOAD_FOLDER
+  const name = parsedMessage.user.enName
+  const date = parsedMessage.createdAt.toFormat('yyMMdd')
+  const folder = `${downloadFolder}/${name}/${date}`
+
+  return parsedMessage.media.map(url => {
+    const filename = url.split('/').pop()
+
+    const image = new Image()
+    image.createdAt = parsedMessage.createdAt.toISO()
+    image.url = url
+    image.folder = folder
+    image.path = `${folder}/${filename}`
+
+    return image
+  })
+}
+
+const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
+  const message = new Message()
+  message.messageId = parsedMessage.id
+  message.memberId = parsedMessage.user.id
+  message.memberName = parsedMessage.user.enName
+  message.memberEmoji = parsedMessage.emoji
+  message.createdAt = parsedMessage.createdAt.toISO()
+  message.type = parsedMessage.isPostcard ? MessageType.POSTCARD : MessageType.LETTER
+  message.artist = await getRepository(Artist).findOne({ where: { artistId: parsedMessage.user.id } })
+  message.images = saveImages(parsedMessage)
+
+  await getRepository(Message).save(message)
+
+  return message
+}
+
+export const saveMessages = async (): Promise<Message[]> => {
+  // fetch messages
+  const unfilteredMessages = await fetchMessages()
+
+  // filter out anything already in the database and anything without media
+  const inDatabase = await getRepository(Message).find({
+    where: {
+      messageId: In(unfilteredMessages.map(m => m.id))
+    }
+  })
+  const filteredMessages = unfilteredMessages
+    .filter(message => inDatabase.find(m => m.messageId === message.id) === undefined)
     .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
-    .map(message => {
-      return {
-        message: message,
-        downloadables: buildDownloadables(parseMessage(message)),
-      }
-    })
-    .filter(({ downloadables }) => !fileExists(downloadables[0].fullPath))
+  console.info(chalk.green(`Fetched ${filteredMessages.length} new messages`))
 
-  const messages = downloadablePosts.map(async dl => {
+  // parse each message
+  const parsedMessages = await Promise.all(filteredMessages.map(async fabMessage => {
     // must pay for posts by members using android due to unpredictable image urls
-    const isAndroid = (!!dl.message.letter && dl.message.letter.images[0].image.includes('IMAGE')) || (!!dl.message.postcard && dl.message.postcard.thumbnail.includes('IMAGE'))
+    const isAndroid = (!!fabMessage.letter && fabMessage.letter.images[0].image.includes('IMAGE')) || (!!fabMessage.postcard && fabMessage.postcard.thumbnail.includes('IMAGE'))
 
     // pay for & fetch android posts
     // bruteforce everything else
-    const message = isAndroid 
-      ? await fetchMessage(dl.message)
-      : await bruteforceImages(parseMessage(dl.message))
-    return {
-      message: message,
-      downloadables: buildDownloadables(message),
-    } as DownloadablePost
-  })
+    return isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+  }))
 
-  return await Promise.all(messages)
+  // save each message to the database
+  const messages: Message[] = []
+  for (const parsed of parsedMessages) {
+    const dbMessage = await buildMessage(parsed)
+    messages.push(dbMessage)
+  }
+
+  return messages
 }
