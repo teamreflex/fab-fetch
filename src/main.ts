@@ -1,9 +1,8 @@
 import chalk from 'chalk'
 import { getRepository } from 'typeorm'
 import { login, userInfo } from "./auth.js"
-import { Message, MessageType } from './entity/Message.js'
-import { downloadMessage } from './files.js'
-import { buildMessage, fetchAndFilterMessages } from './messages.js'
+import { Message } from './entity/Message.js'
+import { saveMessages } from './messages.js'
 import { formatTweet, postTweet, twitterClient } from "./twitter.js"
 import { User } from "./types.js"
 
@@ -24,19 +23,10 @@ export const main = async (postToSocial: boolean) => {
   }
 
   // fetch messages and filter them
-  const messages = await fetchAndFilterMessages()
-  console.info(chalk.green(`Fetched ${messages.length} new messages`))
+  const messages = await saveMessages()
 
-  // save to the database and tweet if necessary
-  for (const parsed of messages) {
-    // save to db
-    const message = await buildMessage(parsed)
-    console.info(chalk.green(`Saved message #${message.messageId} to the database`))
-
-    // download
-    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(message.artist.nameEn)))
-    await downloadMessage(message)
-
+  // tweet if necessary
+  for (const message of messages) {
     // tweet
     if (postToSocial) {
       await postTweet(twitter, message.images, formatTweet(message.createdAt, message.memberEmoji))

@@ -2,25 +2,28 @@ import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType } from "./types.js";
+import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType, BruteforceAttempt, Media } from "./types.js";
 import retry from "async-retry"
-import { Image } from "./entity/Image.js";
-import { Message } from "./entity/Message.js";
 import chalk from "chalk";
 
 const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
 }
 
-export const downloadImage = async (image: DownloadableImage): Promise<any> => {
-  makeFolder(image.folder)
+export const downloadImage = async (media: Media, folder: string, path: string): Promise<any> => {
+  makeFolder(folder)
 
   const streamPipeline = promisify(pipeline);
 
   return await retry(
     async (bail: Function) => {
-      const response = await fetch(image.url);
-  
+      // media was bruteforced
+      if (media.stream) {
+        return await streamPipeline(media.stream, createWriteStream(path));
+      }
+
+      // media was not bruteforced, downloading from url
+      const response = await fetch(media.url);
       if (response.status === 403) {
         // don't retry upon 403, means image doesn't exist
         bail();
@@ -28,7 +31,7 @@ export const downloadImage = async (image: DownloadableImage): Promise<any> => {
       }
   
       if (response.body !== null) {
-        return await streamPipeline(response.body, createWriteStream(image.path));
+        return await streamPipeline(response.body, createWriteStream(path));
       } else {
         return false
       }
@@ -39,21 +42,37 @@ export const downloadImage = async (image: DownloadableImage): Promise<any> => {
   );
 }
 
-export const downloadMessage = async (message: Message): Promise<boolean> => {
+export const downloadMessage = async (message: ParsedMessage): Promise<boolean> => {
+  const downloadFolder = process.env.DOWNLOAD_FOLDER
+  const name = message.user.enName
+  const date = message.createdAt.toFormat('yyMMdd')
+  const folder = `${downloadFolder}/${name}/${date}`
+
   try {
-    const result = await Promise.all(message.images.map(async (image: Image) => {
-      return await downloadImage(image)
+    const result = await Promise.all(message.media.map(async (media: Media) => {
+      const filename = media.url.split('/').pop()
+      const path = `${folder}/${filename}`
+      return await downloadImage(media, folder, path)
     }))
     return true
   } catch (e) {
-    console.info(chalk.bold.red(`Error downloading message #${message.messageId}: ${e}`))
+    console.info(chalk.bold.red(`Error downloading message #${message.id}: ${e}`))
     return false
   }
 }
 
-const checkForValidImage = async (url: string): Promise<boolean> => {
+const checkForValidImage = async (url: string): Promise<BruteforceAttempt> => {
+  console.log('bruteforce:', url)
   const response = await fetch(url);
-  return response.status === 200
+  
+  if (response.status === 200 && response.body !== null) {
+    return {
+      success: true,
+      stream: response.body
+    }
+  } else {
+    return { success: false }
+  }
 }
 
 const parseUrl = (url: string): SplitUrl => {
@@ -71,9 +90,9 @@ const parseUrl = (url: string): SplitUrl => {
 }
 
 export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMessage> => {
-  const foundUrls: string[] = []
+  const foundMedia: Media[] = []
   // fab only sends the first image when it isn't pulled from the individual message endpoint
-  let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0])
+  let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0].url)
 
   // if the image is a postcard thumbnail, we need to adjust what we're checking
   if (message.isPostcard) {
@@ -88,10 +107,13 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       url = `${base}${timestamp}_${date}_${extension}`
     }
 
-    const exists = await checkForValidImage(url)
-    if (exists) {
+    const attempt = await checkForValidImage(url)
+    if (attempt.success) {
       // found an image, check for next one
-      foundUrls.push(url)
+      foundMedia.push({
+        url: url,
+        stream: attempt.stream
+      })
       imageNumber++
 
       if (message.isPostcard) {
@@ -122,8 +144,8 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
   await check()
 
   // if we've found images, replace the existing media with the found urls
-  if (foundUrls.length > 0) {
-    message.media = foundUrls
+  if (foundMedia.length > 0) {
+    message.media = foundMedia
   }
 
   return message
