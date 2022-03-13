@@ -1,0 +1,23 @@
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, Relation } from "typeorm";
+import { Artist } from "./Artist.js";
+
+@Entity()
+export class ProfileBanner {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @ManyToOne(() => Artist, artist => artist.messages)
+  artist: Relation<Artist>;
+
+  @Column()
+  createdAt: string;
+
+  @Column()
+  path: string;
+
+  @Column({ default: false })
+  twitterPosted: boolean;
+
+  @Column({ default: false })
+  discordPosted: boolean;
+}

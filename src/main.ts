@@ -1,9 +1,9 @@
-import chalk from "chalk"
-import { login, userInfo } from "./auth"
-import { downloadImage } from "./files"
-import { buildMessages} from "./messages"
-import { formatTweet, postTweet, twitterClient } from "./twitter"
-import { User } from "./types"
+import chalk from 'chalk'
+import { login, userInfo } from "./auth.js"
+import { downloadMessage } from './files.js'
+import { saveMessages } from './messages.js'
+import { postTweet, twitterClient } from "./twitter.js"
+import { User } from "./types.js"
 
 export const startup = async (): Promise<User> => {
   if (! process.env.FAB_ACCESS_TOKEN) {
@@ -20,21 +20,18 @@ export const main = async (postToSocial: boolean) => {
   if (postToSocial) {
     twitter = twitterClient()
   }
-  const messages = await buildMessages()
 
-  if (messages.length > 0) {
-    console.info(chalk.green(`Fetched ${messages.length} messages`))
-  }
+  // save messages and image urls to the database
+  const messages = await saveMessages()
+  console.info(chalk.green(`Saved ${messages.length} messages to the database`))
 
-  messages.forEach(async post => {
-    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.enName)))
+  // download images
+  for (const message of messages) {
+    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(message.artist.nameEn)))
+    await downloadMessage(message)
 
-    // download images
-    await Promise.all(post.downloadables.map(async downloadable => await downloadImage(downloadable)))
-
-    // post to twitter
     if (postToSocial) {
-      await postTweet(twitter, post.downloadables, formatTweet(post.message), post.message.isPostcard)
+      await postTweet(twitter, message)
     }
-  })
+  }
 }

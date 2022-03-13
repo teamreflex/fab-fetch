@@ -1,18 +1,16 @@
 {
-    "compilerOptions": {
-      "target": "esnext",
-      "experimentalDecorators": true,
-      "emitDecoratorMetadata": true,
-      "module": "esnext",
-      "rootDir": "./src",
+   "compilerOptions": {
+      "lib": [
+         "es2021"
+      ],
+      "target": "es2021",
+      "module": "es2022",
       "moduleResolution": "node",
-      "types": ["node"],
-      "resolveJsonModule": true,
-      "outDir": "./dist/",
-      "esModuleInterop": true,
-      "forceConsistentCasingInFileNames": true,
-      "strict": true,
-      "skipLibCheck": true
-    },
-    "include": ["./src/**/*.ts"]
-  }
+      "allowSyntheticDefaultImports": true,
+      "outDir": "./build",
+      "rootDir": "./src",
+      "emitDecoratorMetadata": true,
+      "experimentalDecorators": true,
+      "sourceMap": true
+   }
+}
