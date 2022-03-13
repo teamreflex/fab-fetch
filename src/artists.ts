@@ -40,7 +40,7 @@ const fetchFromRemote = async (): Promise<Artist[]> => {
   // add the loona user first
   const artist = new Artist()
   artist.artistId = data.group.id // this doesn't send the group's userId, but loona just happens to be groupId === 1 and userId === 1
-  artist.nameEn = 'LOONA' // hardcoding this because the real one is "LOOΠΔ" :/
+  artist.nameEn = data.group.enName
   artist.nameKr = data.group.name
   artist.emoji = getEmoji(data.group.id)
   await getRepository(Artist).save(artist)
