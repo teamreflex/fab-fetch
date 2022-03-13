@@ -62,7 +62,6 @@ export const downloadMessage = async (message: ParsedMessage): Promise<boolean> 
 }
 
 const checkForValidImage = async (url: string): Promise<BruteforceAttempt> => {
-  console.log('bruteforce:', url)
   const response = await fetch(url);
   
   if (response.status === 200 && response.body !== null) {
