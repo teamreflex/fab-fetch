@@ -171,13 +171,18 @@ export enum PostcardType {
   VIDEO = 1,
 }
 
+export interface Media {
+  url: string
+  stream?: NodeJS.ReadableStream
+}
+
 export interface ParsedMessage {
   id: number
   createdAt: DateTime
   emoji: string
   user: FabUser
   text: string
-  media: string[]
+  media: Media[]
   isPostcard: boolean
   postcardType: PostcardType
 }
@@ -206,4 +211,9 @@ export type DownloadableImage = DBImage | ProfilePicture | ProfileBanner
 export enum TwitterAccount {
   ARCHIVE = 'archive',
   PROFILES = 'profiles',
+}
+
+export interface BruteforceAttempt {
+  success: boolean
+  stream?: NodeJS.ReadableStream
 }

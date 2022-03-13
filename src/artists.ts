@@ -64,6 +64,7 @@ const handleProfilePicture = async (user: FabUser, artist: Artist, twitter?: Twi
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = artist.nameEn
   const folder = `${downloadFolder}/${name}/profile-pictures`
+  const path = `${folder}/${user.profileImage.split('/').pop()}`
 
   // check if profile picture url exists in the database
   const profilePicture = await getRepository(ProfilePicture).findOne({
@@ -83,11 +84,13 @@ const handleProfilePicture = async (user: FabUser, artist: Artist, twitter?: Twi
   newProfilePicture.createdAt = DateTime.now().toISO()
   newProfilePicture.url = user.profileImage
   newProfilePicture.folder = folder
-  newProfilePicture.path = `${folder}/${user.profileImage.split('/').pop()}`
+  newProfilePicture.path = path
   await getRepository(ProfilePicture).save(newProfilePicture)
 
   // download the image
-  await downloadImage(newProfilePicture)
+  await downloadImage({
+    url: user.profileImage,
+  }, folder, path)
 
   // send off to twitter
   if (twitter) {
@@ -101,6 +104,7 @@ const handleProfileBanner = async (user: FabUser, artist: Artist, twitter?: Twit
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = artist.nameEn
   const folder = `${downloadFolder}/${name}/profile-banners`
+  const path = `${folder}/${user.profileImage.split('/').pop()}`
 
   // check if profile banner url exists in the database
   const profileBanner = await getRepository(ProfileBanner).findOne({
@@ -120,11 +124,13 @@ const handleProfileBanner = async (user: FabUser, artist: Artist, twitter?: Twit
   newProfileBanner.createdAt = DateTime.now().toISO()
   newProfileBanner.url = user.bannerImage
   newProfileBanner.folder = folder
-  newProfileBanner.path = `${folder}/${user.profileImage.split('/').pop()}`
+  newProfileBanner.path = path
   await getRepository(ProfileBanner).save(newProfileBanner)
 
   // download the image
-  await downloadImage(newProfileBanner)
+  await downloadImage({
+    url: user.bannerImage,
+  }, folder, path)
 
   // send off to twitter
   if (twitter) {

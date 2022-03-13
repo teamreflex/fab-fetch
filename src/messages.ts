@@ -5,7 +5,7 @@ import { handleProfile, loadArtists } from './artists.js'
 import { Artist } from './entity/Artist.js'
 import { Image } from './entity/Image.js'
 import { Message, MessageType } from './entity/Message.js'
-import { bruteforceImages } from "./files.js"
+import { bruteforceImages, downloadMessage } from "./files.js"
 import { request } from "./http.js"
 import { getEmoji } from './emoji.js';
 import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType } from "./types.js"
@@ -23,18 +23,22 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
   }
 
   const media = message.letter
-    ? message.letter.images.map(image => image.image)
-    : [message.postcard?.thumbnail]
+    ? message.letter.images.map(image => {
+      return {
+        url: image.image
+      }
+    })
+    : [{ url: message.postcard?.thumbnail }]
 
   // if the message is a postcard and we paid for it, directly download it
   let postcardType = PostcardType.NONE
   if (!!message.postcard) {
     postcardType = message.postcard.type
     if (message.postcard?.postcardVideo) {
-      media[0] = message.postcard?.postcardVideo
+      media[0] = { url: message.postcard?.postcardVideo }
     }
     if (message.postcard?.postcardImage) {
-      media[0] = message.postcard?.postcardImage
+      media[0] = { url: message.postcard?.postcardImage }
     }
   }
 
@@ -128,12 +132,12 @@ const saveImages = (parsedMessage: ParsedMessage): Image[] => {
   const date = parsedMessage.createdAt.toFormat('yyMMdd')
   const folder = `${downloadFolder}/${name}/${date}`
 
-  return parsedMessage.media.map(url => {
-    const filename = url.split('/').pop()
+  return parsedMessage.media.map(media => {
+    const filename = media.url.split('/').pop()
 
     const image = new Image()
     image.createdAt = parsedMessage.createdAt.toISO()
-    image.url = url
+    image.url = media.url
     image.folder = folder
     image.path = `${folder}/${filename}`
 
@@ -141,7 +145,7 @@ const saveImages = (parsedMessage: ParsedMessage): Image[] => {
   })
 }
 
-export const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
+const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
   const message = new Message()
   message.messageId = parsedMessage.id
   message.memberId = parsedMessage.user.id
@@ -157,7 +161,7 @@ export const buildMessage = async (parsedMessage: ParsedMessage): Promise<Messag
   return message
 }
 
-export const fetchAndFilterMessages = async (): Promise<ParsedMessage[]> => {
+export const saveMessages = async (): Promise<Message[]> => {
   // fetch messages
   const unfilteredMessages = await fetchMessages()
 
@@ -172,13 +176,23 @@ export const fetchAndFilterMessages = async (): Promise<ParsedMessage[]> => {
     .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
   console.info(chalk.green(`Fetched ${filteredMessages.length} new messages`))
 
-  // parse each message
-  return await Promise.all(filteredMessages.map(async fabMessage => {
+  // perform various tasks on each message
+  const messages: Message[] = []
+  for (const fabMessage of filteredMessages) {
     // must pay for posts by members using android due to unpredictable image urls
     const isAndroid = (!!fabMessage.letter && fabMessage.letter.images[0].image.includes('IMAGE')) || (!!fabMessage.postcard && fabMessage.postcard.thumbnail.includes('IMAGE'))
 
     // pay for & fetch android posts
     // bruteforce everything else
-    return isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
-  }))
+    const parsed = isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+
+    // download media
+    await downloadMessage(parsed)
+
+    // save to the database
+    console.info(chalk.green(`Saving message #${parsed.id} to the database`))
+    messages.push(await buildMessage(parsed))
+  }
+
+  return messages
 }
