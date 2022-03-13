@@ -1,4 +1,7 @@
-import { DateTime } from "luxon";
+import { DateTime } from "luxon"
+import { ProfilePicture } from './entity/ProfilePicture.js'
+import { Image as DBImage } from './entity/Image.js'
+import { ProfileBanner } from './entity/ProfileBanner.js'
 
 export interface AuthResult {
   token: string
@@ -162,6 +165,12 @@ export interface FabMessage {
   group?: Group
 }
 
+export enum PostcardType {
+  NONE = -1,
+  IMAGE = 0,
+  VIDEO = 1,
+}
+
 export interface ParsedMessage {
   id: number
   createdAt: DateTime
@@ -170,6 +179,7 @@ export interface ParsedMessage {
   text: string
   media: string[]
   isPostcard: boolean
+  postcardType: PostcardType
 }
 
 export interface DownloadPath {
@@ -189,4 +199,11 @@ export interface SplitUrl {
 export interface DownloadablePost {
   message: ParsedMessage
   downloadables: DownloadPath[]
+}
+
+export type DownloadableImage = DBImage | ProfilePicture | ProfileBanner
+
+export enum TwitterAccount {
+  ARCHIVE = 'archive',
+  PROFILES = 'profiles',
 }

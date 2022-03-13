@@ -2,7 +2,7 @@ import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { ParsedMessage, SplitUrl } from "./types.js";
+import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType } from "./types.js";
 import retry from "async-retry"
 import { Image } from "./entity/Image.js";
 import { Message } from "./entity/Message.js";
@@ -12,7 +12,7 @@ const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
 }
 
-const downloadImage = async (image: Image): Promise<any> => {
+export const downloadImage = async (image: DownloadableImage): Promise<any> => {
   makeFolder(image.folder)
 
   const streamPipeline = promisify(pipeline);
@@ -76,16 +76,15 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
   let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0])
 
   // if the image is a postcard thumbnail, we need to adjust what we're checking
-  const isPostcard = message.media[0].includes('_b.jpg')
-  if (isPostcard) {
-    extension = 'f.mp4'
+  if (message.isPostcard) {
+    extension = message.postcardType === PostcardType.IMAGE ? 'f.jpg' : 'f.mp4'
   }
 
   let failures = 0
   const check = async () => {
     let url = `${base}${timestamp}_${date}_${imageNumber}_${extension}`
 
-    if (isPostcard) {
+    if (message.isPostcard) {
       url = `${base}${timestamp}_${date}_${extension}`
     }
 
@@ -95,14 +94,14 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       foundUrls.push(url)
       imageNumber++
 
-      if (isPostcard) {
+      if (message.isPostcard) {
         // we've found our .mp4, time to bail out
         failures = 5
       }
     } else {
       // if the imageNumber increase fails, try a timestamp change
       // if it's a postcard, decrease by 1, otherwise increase by 1
-      if (isPostcard) {
+      if (message.isPostcard) {
         timestamp--
       } else {
         timestamp++
@@ -124,11 +123,7 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
 
   // if we've found images, replace the existing media with the found urls
   if (foundUrls.length > 0) {
-    if (isPostcard) {
-      message.media = message.media.concat(foundUrls)
-    } else {
-      message.media = foundUrls
-    }
+    message.media = foundUrls
   }
 
   return message

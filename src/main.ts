@@ -1,8 +1,10 @@
 import chalk from 'chalk'
+import { getRepository } from 'typeorm'
 import { login, userInfo } from "./auth.js"
+import { Message, MessageType } from './entity/Message.js'
 import { downloadMessage } from './files.js'
 import { saveMessages } from './messages.js'
-import { postTweet, twitterClient } from "./twitter.js"
+import { formatTweet, postTweet, twitterClient } from "./twitter.js"
 import { User } from "./types.js"
 
 export const startup = async (): Promise<User> => {
@@ -31,7 +33,11 @@ export const main = async (postToSocial: boolean) => {
     await downloadMessage(message)
 
     if (postToSocial) {
-      await postTweet(twitter, message)
+      await postTweet(twitter, message.images, formatTweet(message.createdAt, message.memberEmoji))
+
+      // mark message as posted
+      message.twitterPosted = true
+      await getRepository(Message).save(message)
     }
   }
 }

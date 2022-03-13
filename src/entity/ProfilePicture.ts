@@ -13,6 +13,12 @@ export class ProfilePicture {
   createdAt: string;
 
   @Column()
+  url: string;
+
+  @Column()
+  folder: string;
+
+  @Column()
   path: string;
 
   @Column({ default: false })

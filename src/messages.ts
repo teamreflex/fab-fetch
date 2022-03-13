@@ -1,14 +1,14 @@
 import chalk from 'chalk'
 import { DateTime } from "luxon"
 import { getRepository, In } from 'typeorm'
-import { loadArtists } from './artists.js'
+import { handleProfile, loadArtists } from './artists.js'
 import { Artist } from './entity/Artist.js'
 import { Image } from './entity/Image.js'
 import { Message, MessageType } from './entity/Message.js'
 import { bruteforceImages } from "./files.js"
 import { request } from "./http.js"
 import { getEmoji } from './emoji.js';
-import { FabUser, LetterTextObject, FabMessage, ParsedMessage } from "./types.js"
+import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType } from "./types.js"
 
 const parseMessage = (message: FabMessage): ParsedMessage => {
   let text = ''
@@ -27,7 +27,9 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
     : [message.postcard?.thumbnail]
 
   // if the message is a postcard and we paid for it, directly download it
+  let postcardType = PostcardType.NONE
   if (!!message.postcard) {
+    postcardType = message.postcard.type
     if (message.postcard?.postcardVideo) {
       media[0] = message.postcard?.postcardVideo
     }
@@ -44,6 +46,7 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
     media: media,
     emoji: getEmoji(message.userId),
     isPostcard: !!message.postcard,
+    postcardType: postcardType,
   } as ParsedMessage
 
   return parsed
@@ -87,6 +90,11 @@ const fetchMessagesByArtist = async (artist: Artist): Promise<FabMessage[]> => {
     process.exit()
   }
 
+  // pass the user off to check for new profile updates
+  if (data.messages && data.messages.length > 0) {
+    await handleProfile(parseUser(data.messages[0]), artist)
+  }
+
   return data.messages
 }
 
@@ -94,7 +102,7 @@ const fetchMessages = async (): Promise<FabMessage[]> => {
   const artists = await loadArtists()
   const messages = await Promise.all(artists.map(artist => fetchMessagesByArtist(artist)))
 
-  return messages.flat().slice(0, 10)
+  return messages.flat()
 }
 
 const payForMessage = async (message: FabMessage): Promise<ParsedMessage> => {
