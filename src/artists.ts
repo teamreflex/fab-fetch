@@ -104,7 +104,7 @@ const handleProfileBanner = async (user: FabUser, artist: Artist, twitter?: Twit
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = artist.nameEn
   const folder = `${downloadFolder}/${name}/profile-banners`
-  const path = `${folder}/${user.profileImage.split('/').pop()}`
+  const path = `${folder}/${user.bannerImage.split('/').pop()}`
 
   // check if profile banner url exists in the database
   const profileBanner = await getRepository(ProfileBanner).findOne({
