@@ -163,6 +163,7 @@ export interface FabMessage {
   letter?: Letter
   postcard?: Postcard
   group?: Group
+  thumbnail: string
 }
 
 export enum PostcardType {

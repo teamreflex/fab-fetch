@@ -22,12 +22,18 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
       .join('\n')
   }
 
-  const media = message.letter
-    ? message.letter.images.map(image => {
+  // default to the thumbnail, but then handle a paid-for message
+  let firstImage = [{ url: message.thumbnail }]
+  if (message.letter && message.letter.images.length > 0) {
+    firstImage = message.letter.images.map(image => {
       return {
         url: image.image
       }
     })
+  }
+
+  const media = message.letter
+    ? firstImage
     : [{ url: message.postcard?.thumbnail }]
 
   // if the message is a postcard and we paid for it, directly download it
