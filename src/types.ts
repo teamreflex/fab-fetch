@@ -160,6 +160,7 @@ export interface Message {
   letter?: Letter
   postcard?: Postcard
   group?: Group
+  thumbnail: string
 }
 
 export interface ParsedMessage {

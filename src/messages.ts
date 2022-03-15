@@ -74,8 +74,14 @@ export const parseMessage = (message: Message): ParsedMessage => {
         .join('\n')
     }
 
+  // default to the thumbnail, but then handle a paid-for message
+  let firstImage = [message.thumbnail]
+  if (message.letter && message.letter.images.length > 0) {
+    firstImage = message.letter.images.map(image => image.image)
+  }
+
   const media = message.letter
-    ? message.letter.images.map(image => image.image)
+    ? firstImage
     : [message.postcard?.thumbnail]
 
   // if the message is a postcard and we paid for it, directly download the video
