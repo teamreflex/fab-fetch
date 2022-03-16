@@ -3,9 +3,11 @@ import { DownloadableImage, TwitterAccount } from './types.js'
 import { TweetV1, TwitterApi } from 'twitter-api-v2'
 import { DateTime } from 'luxon'
 
-export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE): TwitterApi => {
+export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE): TwitterApi | undefined => {
   switch (account) {
     case TwitterAccount.ARCHIVE:
+      if (!process.env.TWITTER_ARCHIVE_API_KEY) return undefined
+      
       return new TwitterApi({
         appKey: process.env.TWITTER_ARCHIVE_API_KEY as string,
         appSecret: process.env.TWITTER_ARCHIVE_API_SECRET as string,
@@ -13,6 +15,8 @@ export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE):
         accessSecret: process.env.TWITTER_ARCHIVE_ACCESS_SECRET as string,
       })
     case TwitterAccount.PROFILES:
+      if (!process.env.TWITTER_PROFILES_API_KEY) return undefined
+
       return new TwitterApi({
         appKey: process.env.TWITTER_PROFILES_API_KEY as string,
         appSecret: process.env.TWITTER_PROFILES_API_SECRET as string,
