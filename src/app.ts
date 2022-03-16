@@ -3,6 +3,7 @@ import 'dotenv/config'
 import { main, startup } from './main.js'
 import { createConnection } from 'typeorm'
 import chalk from 'chalk'
+import { fetchFabVersion } from './http.js'
 
 // config fetching
 const post = process.env.TWITTER_ENABLED === 'true'
@@ -17,8 +18,12 @@ if (devMode) {
 createConnection().then(async connection => {
   console.info(chalk.bold.green('Database connected!'))
 
-  // load the Fab user into memory
   if (!devMode) {
+    // fetch the Fab app version
+    process.env.FAB_VERSION = await fetchFabVersion()
+    console.info(chalk.cyan('Loaded Fab version:', chalk.bold(process.env.FAB_VERSION)))
+
+    // load the Fab user into memory
     await startup()
   }
 
