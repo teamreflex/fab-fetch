@@ -18,7 +18,7 @@ export const fetchUnreadMessages = async (): Promise<Message[]> => {
     process.exit()
   }
 
-  return data.messages.slice(0, 5)
+  return data.messages
 }
 
 export const fetchMessage = async (message: Message): Promise<ParsedMessage> => {
