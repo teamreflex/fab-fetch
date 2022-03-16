@@ -4,6 +4,7 @@ import { pipeline } from "stream";
 import { promisify } from "util";
 import { DownloadPath, ParsedMessage, SplitUrl } from "./types";
 import retry from "async-retry"
+import { DateTime } from "luxon";
 
 export const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
@@ -74,7 +75,7 @@ const parseUrl = (url: string): SplitUrl => {
   return {
     base: baseUrl,
     timestamp: Number(timestamp),
-    date: parts[1],
+    date: Number(parts[1]),
     imageNumber: Number(parts[2]),
     extension: parts[3],
   }
@@ -92,6 +93,7 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
   }
 
   let failures = 0
+  let dateDecreased = false
   const check = async () => {
     let url = `${base}${timestamp}_${date}_${imageNumber}_${extension}`
 
@@ -109,22 +111,31 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
         // we've found our .mp4, time to bail out
         failures = 5
       }
+      failures = 0
+      // console.log(`Found image:`, url)
     } else {
-      // if the imageNumber increase fails, try a timestamp change
-      // if it's a postcard, decrease by 1, otherwise increase by 1
-      if (isPostcard) {
-        timestamp--
-      } else {
-        timestamp++
+      // first failure, try decreasing the date, because we have to rely on deriving urls now
+      // only want to do this once and only after before finding anything
+      if (failures === 0 && dateDecreased === false && foundUrls.length === 0) {
+        date--
+        dateDecreased = true
       }
+
+      // second failure, try increasing the timestamp
+      // if it's a postcard, decrease by 1, otherwise increase by 1
+      if (failures > 0) {
+        timestamp += isPostcard ? -1 : 1
+      }
+
       failures++
+      // console.log(`Failed image:`, url)
     }
 
-    // bail out if we've failed twice, as it means a timestamp + 1 AND imageNumber + 1 has failed
+    // bail out if we've failed three times, as it means a timestamp increase/decrease, date decrease AND imageNumber + 1 has failed
     // this means either:
     // - we've found all the images
     // - the image url structure has deviated from the expected pattern
-    if (failures < 2) {
+    if (failures < 3) {
       await check()
     }
   }
@@ -144,3 +155,7 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
   return message
 }
 
+export const deriveUrl = (timestamp: number, letterId: number): string => {
+  const time = DateTime.fromMillis(timestamp, { zone: 'Asia/Seoul' });
+  return `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}_1_f.jpg`
+}
