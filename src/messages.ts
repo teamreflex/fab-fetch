@@ -8,7 +8,7 @@ import { Message, MessageType } from './entity/Message.js'
 import { bruteforceImages, deriveUrl, downloadMessage } from "./files.js"
 import { request } from "./http.js"
 import { getEmoji } from './emoji.js';
-import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType } from "./types.js"
+import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType, DownloadResult } from "./types.js"
 
 const parseMessage = (message: FabMessage): ParsedMessage => {
   let text = ''
@@ -216,7 +216,8 @@ export const saveMessages = async (): Promise<Message[]> => {
     }
 
     // download media
-    if (await downloadMessage(parsed)) {
+    const result = await downloadMessage(parsed)
+    if (result !== DownloadResult.CONNECTION_ERROR) {
       // save to the database
       messages.push(await buildMessage(parsed))
       console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName), `(Found ${parsed.media.length} images/videos)`))

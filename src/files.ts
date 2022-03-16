@@ -2,7 +2,7 @@ import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType, BruteforceAttempt, Media } from "./types.js";
+import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType, BruteforceAttempt, Media, DownloadResult } from "./types.js";
 import retry from "async-retry"
 import chalk from "chalk";
 import { DateTime } from "luxon";
@@ -27,7 +27,7 @@ export const downloadImage = async (media: Media, folder: string, path: string):
       const response = await fetch(media.url);
       if (response.status === 403) {
         // don't retry upon 403, means image doesn't exist
-        bail();
+        bail(new Error('404'));
         return;
       }
   
@@ -43,7 +43,7 @@ export const downloadImage = async (media: Media, folder: string, path: string):
   );
 }
 
-export const downloadMessage = async (message: ParsedMessage): Promise<boolean> => {
+export const downloadMessage = async (message: ParsedMessage): Promise<DownloadResult> => {
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = message.user.enName
   const date = message.createdAt.toFormat('yyMMdd')
@@ -53,12 +53,16 @@ export const downloadMessage = async (message: ParsedMessage): Promise<boolean> 
     const result = await Promise.all(message.media.map(async (media: Media) => {
       const filename = media.url.split('/').pop()
       const path = `${folder}/${filename}`
-      return await downloadImage(media, folder, path)
+      const res = await downloadImage(media, folder, path)
+      return !!res ? DownloadResult.SUCCESS : DownloadResult.CONNECTION_ERROR
     }))
-    return true
+    return DownloadResult.SUCCESS
   } catch (e) {
-    console.info(chalk.bold.red(`Error downloading message #${message.id}: ${e}`))
-    return false
+    if ((e as string).includes('404')) {
+      console.info(chalk.bold.yellow(`Skipping message #${message.id} due to no images`))
+      return DownloadResult.NOT_FOUND
+    }
+    return DownloadResult.CONNECTION_ERROR
   }
 }
 
