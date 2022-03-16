@@ -131,7 +131,7 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       // console.log(`Found image:`, url)
     } else {
       // try decreasing the date, because we have to rely on deriving urls now
-      // only want to do this once and only after before finding anything
+      // only want to do this before finding anything
       if (foundMedia.length === 0) {
         date--
       } else {
@@ -144,11 +144,11 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       // console.log(`Failed image:`, url)
     }
 
-    // bail out if we've failed twice, as it means a timestamp + 1 AND imageNumber + 1 has failed
+    // bail out if we've failed three times, as it means a timestamp decrement/increment, date decrement AND imageNumber increment have all failed
     // this means either:
     // - we've found all the images
     // - the image url structure has deviated from the expected pattern
-    if (failures < 2) {
+    if (failures < 3) {
       await check()
     }
   }
