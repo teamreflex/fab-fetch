@@ -45,7 +45,7 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
     }
 
     // and finally, have to derive the url from the message createdAt timestamp
-    if (!message.letter.thumbnail) {
+    if (message.letter.images.length === 0 && !message.letter.thumbnail) {
       media = [{ url: deriveUrl(message.createdAt, message.letter.id) }]
     }
   }
@@ -206,6 +206,7 @@ export const saveMessages = async (): Promise<Message[]> => {
 
     // pay for & fetch android posts
     // bruteforce everything else
+    console.info(chalk.green('Fetching message from:', chalk.bold.cyan(fabMessage.user?.artist.enName || 'LOONA')))
     const parsed = isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
 
     // no media, save to database but ultimately skip the message
