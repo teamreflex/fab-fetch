@@ -5,7 +5,7 @@ import { handleProfile, loadArtists } from './artists.js'
 import { Artist } from './entity/Artist.js'
 import { Image } from './entity/Image.js'
 import { Message, MessageType } from './entity/Message.js'
-import { bruteforceImages, downloadMessage } from "./files.js"
+import { bruteforceImages, deriveUrl, downloadMessage } from "./files.js"
 import { request } from "./http.js"
 import { getEmoji } from './emoji.js';
 import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType } from "./types.js"
@@ -22,29 +22,44 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
       .join('\n')
   }
 
-  // default to the thumbnail, but then handle a paid-for message
-  let firstImage = [{ url: message.thumbnail }]
-  if (message.letter && message.letter.images.length > 0) {
-    firstImage = message.letter.images.map(image => {
-      return {
-        url: image.image
-      }
-    })
+  // default to the letter thumbnail
+  let media = message.letter
+    ? message.letter.thumbnail
+      ? [{ url: message.letter.thumbnail }]
+      : []
+    : []
+
+  if (!!message.letter) {
+    // handle paid for letter messages
+    if (message.letter.images.length > 0) {
+      media = message.letter.images.map(image => {
+        return {
+          url: image.image
+        }
+      })
+    }
+
+    // handle messages that have a thumbnail url
+    if (message.letter.thumbnail) {
+      media = [{ url: message.letter.thumbnail }]
+    }
+
+    // and finally, have to derive the url from the message createdAt timestamp
+    if (!message.letter.thumbnail) {
+      media = [{ url: deriveUrl(message.createdAt, message.letter.id) }]
+    }
   }
 
-  const media = message.letter
-    ? firstImage
-    : [{ url: message.postcard?.thumbnail }]
-
-  // if the message is a postcard and we paid for it, directly download it
+  // handle postcards, paid for and not paid for
   let postcardType = PostcardType.NONE
   if (!!message.postcard) {
     postcardType = message.postcard.type
     if (message.postcard?.postcardVideo) {
-      media[0] = { url: message.postcard?.postcardVideo }
-    }
-    if (message.postcard?.postcardImage) {
-      media[0] = { url: message.postcard?.postcardImage }
+      media = [{ url: message.postcard?.postcardVideo }]
+    } else if (message.postcard?.postcardImage) {
+      media = [{ url: message.postcard?.postcardImage }]
+    } else {
+      media = [{ url: message.postcard?.thumbnail }]
     }
   }
 
@@ -112,7 +127,7 @@ const fetchMessages = async (): Promise<FabMessage[]> => {
   const artists = await loadArtists()
   const messages = await Promise.all(artists.map(artist => fetchMessagesByArtist(artist)))
 
-  return messages.flat()
+  return messages.flat().sort((a, b) => a.id < b.id ? 1 : -1)
 }
 
 const payForMessage = async (message: FabMessage): Promise<ParsedMessage> => {
@@ -179,25 +194,32 @@ export const saveMessages = async (): Promise<Message[]> => {
   })
   const filteredMessages = unfilteredMessages
     .filter(message => inDatabase.find(m => m.messageId === message.id) === undefined)
-    .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
   console.info(chalk.green(`Fetched ${filteredMessages.length} new messages`))
 
   // perform various tasks on each message
   const messages: Message[] = []
   for (const fabMessage of filteredMessages) {
     // must pay for posts by members using android due to unpredictable image urls
-    const isAndroid = (!!fabMessage.letter && fabMessage.letter.images[0].image.includes('IMAGE')) || (!!fabMessage.postcard && fabMessage.postcard.thumbnail.includes('IMAGE'))
+    const isAndroid = (fabMessage.userId === 4) // haseul
+    || (!!fabMessage.letter && fabMessage.letter.thumbnail.includes('IMAGE')) // old posts still have thumbnail urls, so this will catch old yves posts
+    || (!!fabMessage.postcard && fabMessage.postcard.thumbnail.includes('IMAGE')) // postcards still have thumbnail urls
 
     // pay for & fetch android posts
     // bruteforce everything else
     const parsed = isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+
+    // no media, save to database but ultimately skip the message
+    if (parsed.media.length === 0) {
+      await buildMessage(parsed)
+      continue
+    }
 
     // download media
     await downloadMessage(parsed)
 
     // save to the database
     messages.push(await buildMessage(parsed))
-    console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName)))
+    console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName), `(Found ${parsed.media.length} images/videos)`))
   }
 
   return messages
