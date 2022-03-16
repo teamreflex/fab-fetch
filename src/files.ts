@@ -127,7 +127,7 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
 
       if (message.isPostcard) {
         // we've found our .mp4, time to bail out
-        failures = 5
+        failures = 10
       } else {
         // reset upon finding a valid url
         failures = 0
@@ -148,11 +148,14 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       // console.log(`Failed image:`, url)
     }
 
-    // bail out if we've failed three times, as it means a timestamp decrement/increment, date decrement AND imageNumber increment have all failed
+    // set the maximum failures to 5 when checking the datetime, as it's only able to get within 1-3~ tries
+    // otherwise make it 2
+    const maximumFailures = foundMedia.length === 0 ? 5 : 2
+    // bail out if we've failed five times, as it means a timestamp decrement/increment, date decrement AND imageNumber increment have all failed
     // this means either:
     // - we've found all the images
     // - the image url structure has deviated from the expected pattern
-    if (failures < 3) {
+    if (failures < maximumFailures) {
       await check()
     }
   }
