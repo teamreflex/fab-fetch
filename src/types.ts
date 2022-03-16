@@ -130,6 +130,7 @@ export interface Letter {
   status: number
   createdAt: number
   updatedAt: number
+  thumbnail: string
   images: Image[]
 }
 
@@ -163,7 +164,6 @@ export interface FabMessage {
   letter?: Letter
   postcard?: Postcard
   group?: Group
-  thumbnail: string
 }
 
 export enum PostcardType {
@@ -197,7 +197,7 @@ export interface DownloadPath {
 export interface SplitUrl {
   base: string
   timestamp: number
-  date: string
+  date: number
   imageNumber: number
   extension: string
 }
