@@ -215,11 +215,11 @@ export const saveMessages = async (): Promise<Message[]> => {
     }
 
     // download media
-    await downloadMessage(parsed)
-
-    // save to the database
-    messages.push(await buildMessage(parsed))
-    console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName), `(Found ${parsed.media.length} images/videos)`))
+    if (await downloadMessage(parsed)) {
+      // save to the database
+      messages.push(await buildMessage(parsed))
+      console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName), `(Found ${parsed.media.length} images/videos)`))
+    }
   }
 
   return messages
