@@ -1,6 +1,6 @@
 import chalk from "chalk"
 import { DateTime } from "luxon"
-import { bruteforceImages, buildDownloadables, fileExists } from "./files"
+import { bruteforceImages, buildDownloadables, deriveUrl, fileExists } from "./files"
 import { request } from "./http"
 import { DownloadablePost, FabUser, LetterTextObject, Message, ParsedMessage } from "./types"
 
@@ -18,7 +18,7 @@ export const fetchUnreadMessages = async (): Promise<Message[]> => {
     process.exit()
   }
 
-  return data.messages
+  return data.messages.slice(0, 5)
 }
 
 export const fetchMessage = async (message: Message): Promise<ParsedMessage> => {
@@ -62,6 +62,28 @@ const parseUser = (message: Message): FabUser => {
   } as FabUser
 }
 
+const collectMedia = (message: Message): string[] => {
+  // default to the thumbnail
+  let firstImage = !!message.thumbnail ? [message.thumbnail] : []
+
+  // handle paid-for messages
+  if (message.letter && message.letter.images.length > 0) {
+    firstImage = message.letter.images.map(image => image.image)
+  }
+
+  // must derive the url from the message createdAt timestamp
+  if (firstImage.length === 0 && message.letter) {
+    firstImage = [
+      deriveUrl(message.createdAt, message.letter.id)
+    ]
+  }
+
+  // and handle postcards
+  return message.letter
+    ? firstImage
+    : [message.postcard?.thumbnail as string] // because if letter doesn't exist, then postcard does
+}
+
 export const parseMessage = (message: Message): ParsedMessage => {
   let text = ''
   const parsedJson = message.letter && message.letter.text
@@ -74,19 +96,16 @@ export const parseMessage = (message: Message): ParsedMessage => {
         .join('\n')
     }
 
-  // default to the thumbnail, but then handle a paid-for message
-  let firstImage = [message.thumbnail]
-  if (message.letter && message.letter.images.length > 0) {
-    firstImage = message.letter.images.map(image => image.image)
-  }
+  const media = collectMedia(message)
 
-  const media = message.letter
-    ? firstImage
-    : [message.postcard?.thumbnail]
-
-  // if the message is a postcard and we paid for it, directly download the video
-  if (!!message.postcard && message.postcard?.postcardVideo) {
-    media[0] = message.postcard?.postcardVideo
+  // if the message is a postcard and we paid for it, directly download media
+  if (!!message.postcard) {
+    if (message.postcard?.postcardVideo) {
+      media[0] = message.postcard?.postcardVideo
+    }
+    if (message.postcard?.postcardImage) {
+      media[0] = message.postcard?.postcardImage
+    }
   }
 
   const parsed = {
@@ -105,7 +124,7 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
   const unreadMessages = await fetchUnreadMessages()
 
   const downloadablePosts = unreadMessages
-    .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
+    // .filter(message => !!message.postcard || Number(message?.letter?.images?.length) > 0)
     .map(message => {
       return {
         message: message,
@@ -116,7 +135,8 @@ export const buildMessages = async (): Promise<DownloadablePost[]> => {
 
   const messages = downloadablePosts.map(async dl => {
     // must pay for posts by members using android due to unpredictable image urls
-    const isAndroid = (!!dl.message.letter && dl.message.letter.images[0].image.includes('IMAGE')) || (!!dl.message.postcard && dl.message.postcard.thumbnail.includes('IMAGE'))
+    // const isAndroid = (!!dl.message.letter && dl.message.letter.images[0].image.includes('IMAGE')) || (!!dl.message.postcard && dl.message.postcard.thumbnail.includes('IMAGE'))
+    const isAndroid = !!dl.message.postcard && dl.message.postcard.thumbnail.includes('IMAGE')
 
     // pay for & fetch android posts
     // bruteforce everything else

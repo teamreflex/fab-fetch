@@ -20,14 +20,14 @@ export const main = async (postToSocial: boolean) => {
   if (postToSocial) {
     twitter = twitterClient()
   }
-  const messages = await buildMessages()
+  const messages = (await buildMessages()).filter(m => m.downloadables.length > 0)
 
   if (messages.length > 0) {
     console.info(chalk.green(`Fetched ${messages.length} messages`))
   }
 
   messages.forEach(async post => {
-    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.enName)))
+    console.info(chalk.green(`Downloading message from:`, chalk.cyan.bold(post.message.user.enName), `(Found ${post.downloadables.length} images)`))
 
     // download images
     await Promise.all(post.downloadables.map(async downloadable => await downloadImage(downloadable)))

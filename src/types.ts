@@ -182,7 +182,7 @@ export interface DownloadPath {
 export interface SplitUrl {
   base: string
   timestamp: number
-  date: string
+  date: number
   imageNumber: number
   extension: string
 }
