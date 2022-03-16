@@ -77,7 +77,7 @@ console.log(
 This URL acts as the starting point for the bruteforce function, and it suffers from the same drawbacks as previously, including a new one:
   - The `IMAGENUMBER` must still be incremented for multi-image messages.
   - The `UNIXTIMESTAMP` must still increment in some cases.
-  - Now the `DATETIME` must often be decremented, sometimes by 1, sometimes by 1. The bot allows a maximum of 2 retries (a decrement of 2) before it fails.
+  - Now the `DATETIME` must often be decremented, sometimes by 1, sometimes by 2. The bot allows a maximum of 2 retries (a decrement of 2) before it fails.
 
 Because there's no longer any URLs by default and it's unable to check the string for markers of an Android post, the bot checks for a userId of 4 (HaSeul) and defaults to paying for those posts. Yves recently swapped back to an iPhone, so for now it's hardcoded. In the event Yves swaps back, the bot will simply skip anything with no media, much like it does already for the one message that was sent with just text.
 
