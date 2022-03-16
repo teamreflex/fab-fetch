@@ -218,3 +218,9 @@ export interface BruteforceAttempt {
   success: boolean
   stream?: NodeJS.ReadableStream
 }
+
+export enum DownloadResult {
+  SUCCESS = 'SUCCESS',
+  NOT_FOUND = 'NOT_FOUND',
+  CONNECTION_ERROR = 'CONNECTION_ERROR',
+}
