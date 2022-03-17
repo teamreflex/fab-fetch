@@ -22,14 +22,17 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
       .join('\n')
   }
 
-  // default to the letter thumbnail
-  let media = message.letter
-    ? message.letter.thumbnail
-      ? [{ url: message.letter.thumbnail }]
-      : []
-    : []
-
+  let media = []
   if (!!message.letter) {
+    // if the thumbnail exists
+    if (message.letter.thumbnail) {
+      // if the messageId is before the first image with a "new" thumbnail
+      if (message.id < 455) {
+        // use that image as a start for bruteforcing
+        media = [{ url: message.letter.thumbnail }]
+      }
+    }
+
     // handle paid for letter messages
     if (message.letter.images.length > 0) {
       media = message.letter.images.map(image => {
@@ -39,13 +42,8 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
       })
     }
 
-    // handle messages that have a thumbnail url
-    if (message.letter.thumbnail) {
-      media = [{ url: message.letter.thumbnail }]
-    }
-
     // and finally, have to derive the url from the message createdAt timestamp
-    if (message.letter.images.length === 0 && !message.letter.thumbnail) {
+    if (media.length === 0) {
       media = [{ url: deriveUrl(message.createdAt, message.letter.id) }]
     }
   }

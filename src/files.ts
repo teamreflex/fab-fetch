@@ -27,7 +27,7 @@ export const downloadImage = async (media: Media, folder: string, path: string):
       const response = await fetch(media.url);
       if (response.status === 403) {
         // don't retry upon 403, means image doesn't exist
-        bail(new Error('404'));
+        bail('404');
         return;
       }
   
@@ -136,8 +136,10 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
     } else {
       // try decreasing the date, because we have to rely on deriving urls now
       // only want to do this before finding anything
+      // convert back and from the timestamp so seconds are decremented properly
       if (foundMedia.length === 0) {
-        date--
+        const convertedDate = DateTime.fromFormat(String(date), 'yyyyMMddHHmmss')
+        date = Number(convertedDate.minus({ seconds: 1 }).toFormat('yyyyMMddHHmmss'))
       } else {
         // try increasing the timestamp
         // if it's a postcard, decrease by 1, otherwise increase by 1
