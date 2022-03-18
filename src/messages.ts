@@ -24,13 +24,9 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
 
   let media = []
   if (!!message.letter) {
-    // if the thumbnail exists
+    // if the thumbnail exists, use it as the base
     if (message.letter.thumbnail) {
-      // if the messageId is before the first image with a "new" thumbnail
-      if (message.id < 455) {
-        // use that image as a start for bruteforcing
-        media = [{ url: message.letter.thumbnail }]
-      }
+      media = [{ url: message.letter.thumbnail }]
     }
 
     // handle paid for letter messages
@@ -205,12 +201,21 @@ export const saveMessages = async (): Promise<Message[]> => {
     // pay for & fetch android posts
     // bruteforce everything else
     console.info(chalk.green('Fetching message from:', chalk.bold.cyan(fabMessage.user?.artist.enName || 'LOONA')))
-    const parsed = isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+    let parsed = isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
 
-    // no media, save to database but ultimately skip the message
+    // no media found
     if (parsed.media.length === 0) {
-      await buildMessage(parsed)
-      continue
+      // try paying for the message
+      if (process.env.PAY_ON_FALLBACK === 'true') {
+        console.info(chalk.bold.yellow('No media found, trying to pay for message'))
+        parsed = await payForMessage(fabMessage)
+      }
+
+      // if there's still no media, save to the db and skip, otherwise continue and download
+      if (parsed.media.length === 0) {
+        await buildMessage(parsed)
+        continue
+      }
     }
 
     // download media
