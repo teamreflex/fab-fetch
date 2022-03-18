@@ -84,12 +84,14 @@ const parseUrl = (url: string): SplitUrl => {
   const baseUrl = parts[0].substring(0, parts[0].lastIndexOf("/") + 1);
   const timestamp = parts[0].substring(parts[0].lastIndexOf("/") + 1, parts[0].length);
 
+  const usingThumbnail = parts[2] === 't.jpg'
+
   return {
     base: baseUrl,
     timestamp: Number(timestamp),
     date: Number(parts[1]),
-    imageNumber: Number(parts[2]),
-    extension: parts[3],
+    imageNumber: usingThumbnail ? 1 : Number(parts[2]),
+    extension: usingThumbnail ? parts[2] : parts[3],
   }
 }
 
@@ -102,6 +104,12 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
   const foundMedia: Media[] = []
   // fab only sends the first image when it isn't pulled from the individual message endpoint
   let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0].url)
+
+  // t.jpg indicates we're using a thumbnail as the base url
+  const usingThumbnail = extension === 't.jpg'
+  if (usingThumbnail) {
+    extension = 'f.jpg'
+  }
 
   // if the image is a postcard thumbnail, we need to adjust what we're checking
   if (message.isPostcard) {
@@ -135,15 +143,15 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       // console.log(`Found image:`, url)
     } else {
       // try decreasing the date, because we have to rely on deriving urls now
-      // only want to do this before finding anything
+      // only want to do this before finding anything and if we're not using the thumbnail url
       // convert back and from the timestamp so seconds are decremented properly
-      if (foundMedia.length === 0) {
+      if (foundMedia.length === 0 && usingThumbnail === false) {
         const convertedDate = DateTime.fromFormat(String(date), 'yyyyMMddHHmmss')
         date = Number(convertedDate.minus({ seconds: 1 }).toFormat('yyyyMMddHHmmss'))
       } else {
         // try increasing the timestamp
         // if it's a postcard, decrease by 1, otherwise increase by 1
-        timestamp += message.isPostcard ? -1 : 1
+        timestamp += message.isPostcard || (usingThumbnail && foundMedia.length === 0) ? -1 : 1
       }
 
       failures++
