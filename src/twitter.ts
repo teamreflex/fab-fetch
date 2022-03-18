@@ -30,8 +30,8 @@ export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE):
 }
 
 export const formatTweet = (createdAt: string, emoji: string): string => {
-  const date = DateTime.fromISO(createdAt).toFormat('yyMMdd')
-  const time = DateTime.fromISO(createdAt).toFormat('hh:mma')
+  const date = DateTime.fromISO(createdAt, { zone: 'Asia/Seoul' }).toFormat('yyMMdd')
+  const time = DateTime.fromISO(createdAt, { zone: 'Asia/Seoul' }).toFormat('hh:mma')
 
   return `[${date}] ${emoji}\n— ${time} KST`
 }
