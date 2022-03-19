@@ -143,9 +143,9 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
       // console.log(`Found image:`, url)
     } else {
       // try decreasing the date, because we have to rely on deriving urls now
-      // only want to do this before finding anything and if we're not using the thumbnail url
+      // only want to do this before finding anything and if we're not using the thumbnail url and not on postcards
       // convert back and from the timestamp so seconds are decremented properly
-      if (foundMedia.length === 0 && usingThumbnail === false) {
+      if (foundMedia.length === 0 && usingThumbnail === false && message.isPostcard === false) {
         const convertedDate = DateTime.fromFormat(String(date), 'yyyyMMddHHmmss')
         date = Number(convertedDate.minus({ seconds: 1 }).toFormat('yyyyMMddHHmmss'))
       } else {
