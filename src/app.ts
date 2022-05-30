@@ -20,7 +20,11 @@ createConnection().then(async connection => {
 
   if (!devMode) {
     // fetch the Fab app version
-    process.env.FAB_VERSION = await fetchFabVersion()
+    if (!process.env.FAB_VERSION) {
+      console.info(chalk.red('Fab version missing in .env file, please add it.'))
+      process.exit()
+      // process.env.FAB_VERSION = await fetchFabVersion()
+    }
     console.info(chalk.cyan('Loaded Fab version:', chalk.bold(process.env.FAB_VERSION)))
 
     // load the Fab user into memory
