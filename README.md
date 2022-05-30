@@ -87,8 +87,9 @@ Because there's no longer any URLs by default and it's unable to check the strin
     - As soon as a post is retreived from the API, their backend deducts points.
     - Because of this, anything you want to do with the API can be entirely automated.
 - The user-agent requires the latest Android app version number. They have a little bit of leeway in terms of enforcing switching over during update rollouts, but requests will fail once they fully switch everything over.
-    - The bot will scrape the Fab Play Store page for the latest version, and insert it into the user-agent on every request.
-    - It only does this in production/non-dev mode, so make sure `FAB_VERSION` is set to the latest while in dev.
+    - ~~The bot will scrape the Fab Play Store page for the latest version, and insert it into the user-agent on every request.~~
+    - ~~It only does this in production/non-dev mode, so make sure `FAB_VERSION` is set to the latest while in dev.~~
+    - Support for fetching the latest version number from the Play Store has been removed. As of late May, it's now hidden behind a modal that can't be scraped. `FAB_VERSION` is now **required**.
 - As of 2.0, it no longer judges whether or not to download/post to Twitter on if the image has been downloaded, but stores everything in a sqlite database.
     - It also pulls posts in by fetching each artist's messages endpoint, then skipping any messages that exist in the database, thus cutting down on the amount of image bruteforcing going on.
     - Due to using the artist endpoint, it may find in-review messages. Neowiz were recently alerted to this leaking posts, but I'm not 100% sure if that was entirely fixed.
