@@ -1,4 +1,7 @@
-import { DateTime } from "luxon";
+import { DateTime } from "luxon"
+import { ProfilePicture } from './entity/ProfilePicture.js'
+import { Image as DBImage } from './entity/Image.js'
+import { ProfileBanner } from './entity/ProfileBanner.js'
 
 export interface AuthResult {
   token: string
@@ -127,6 +130,7 @@ export interface Letter {
   status: number
   createdAt: number
   updatedAt: number
+  thumbnail: string
   images: Image[]
 }
 
@@ -143,7 +147,7 @@ export interface Postcard {
   updatedAt: number
 }
 
-export interface Message {
+export interface FabMessage {
   id: number
   userId: number
   groupId: number
@@ -160,7 +164,17 @@ export interface Message {
   letter?: Letter
   postcard?: Postcard
   group?: Group
-  thumbnail: string
+}
+
+export enum PostcardType {
+  NONE = -1,
+  IMAGE = 0,
+  VIDEO = 1,
+}
+
+export interface Media {
+  url: string
+  stream?: NodeJS.ReadableStream
 }
 
 export interface ParsedMessage {
@@ -169,8 +183,9 @@ export interface ParsedMessage {
   emoji: string
   user: FabUser
   text: string
-  media: string[]
+  media: Media[]
   isPostcard: boolean
+  postcardType: PostcardType
 }
 
 export interface DownloadPath {
@@ -190,4 +205,22 @@ export interface SplitUrl {
 export interface DownloadablePost {
   message: ParsedMessage
   downloadables: DownloadPath[]
+}
+
+export type DownloadableImage = DBImage | ProfilePicture | ProfileBanner
+
+export enum TwitterAccount {
+  ARCHIVE = 'archive',
+  PROFILES = 'profiles',
+}
+
+export interface BruteforceAttempt {
+  success: boolean
+  stream?: NodeJS.ReadableStream
+}
+
+export enum DownloadResult {
+  SUCCESS = 'SUCCESS',
+  NOT_FOUND = 'NOT_FOUND',
+  CONNECTION_ERROR = 'CONNECTION_ERROR',
 }
