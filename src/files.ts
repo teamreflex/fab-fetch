@@ -2,35 +2,37 @@ import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { DownloadPath, ParsedMessage, SplitUrl } from "./types";
+import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType, BruteforceAttempt, Media, DownloadResult } from "./types.js";
 import retry from "async-retry"
+import chalk from "chalk";
 import { DateTime } from "luxon";
 
-export const makeFolder = (folder: string) => {
+const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
 }
 
-export const fileExists = (path: string): boolean => {
-  return existsSync(path)
-}
-
-export const downloadImage = async (path: DownloadPath): Promise<any> => {
-  makeFolder(path.folder)
+export const downloadImage = async (media: Media, folder: string, path: string): Promise<any> => {
+  makeFolder(folder)
 
   const streamPipeline = promisify(pipeline);
 
   return await retry(
     async (bail: Function) => {
-      const response = await fetch(path.url);
-  
+      // media was bruteforced
+      if (media.stream) {
+        return await streamPipeline(media.stream, createWriteStream(path));
+      }
+
+      // media was not bruteforced, downloading from url
+      const response = await fetch(media.url);
       if (response.status === 403) {
         // don't retry upon 403, means image doesn't exist
-        bail();
+        bail('404');
         return;
       }
   
       if (response.body !== null) {
-        return await streamPipeline(response.body, createWriteStream(path.fullPath));
+        return await streamPipeline(response.body, createWriteStream(path));
       } else {
         return false
       }
@@ -41,30 +43,40 @@ export const downloadImage = async (path: DownloadPath): Promise<any> => {
   );
 }
 
-export const buildPath = (name: string, date: string, imageUrl: string): DownloadPath => {
+export const downloadMessage = async (message: ParsedMessage): Promise<DownloadResult> => {
   const downloadFolder = process.env.DOWNLOAD_FOLDER
-  const filename = imageUrl.split('/').pop()
+  const name = message.user.enName
+  const date = message.createdAt.toFormat('yyMMdd')
+  const folder = `${downloadFolder}/${name}/${date}`
 
-  return {
-    url: imageUrl,
-    folder: `${downloadFolder}/${name}/${date}`,
-    fullPath: `${downloadFolder}/${name}/${date}/${filename}`
-  } as DownloadPath
+  try {
+    const result = await Promise.all(message.media.map(async (media: Media) => {
+      const filename = media.url.split('/').pop()
+      const path = `${folder}/${filename}`
+      const res = await downloadImage(media, folder, path)
+      return !!res ? DownloadResult.SUCCESS : DownloadResult.CONNECTION_ERROR
+    }))
+    return DownloadResult.SUCCESS
+  } catch (e) {
+    if ((e as string).includes('404')) {
+      console.info(chalk.bold.yellow(`Skipping message #${message.id} due to no images`))
+      return DownloadResult.NOT_FOUND
+    }
+    return DownloadResult.CONNECTION_ERROR
+  }
 }
 
-export const buildDownloadables = (message: ParsedMessage): DownloadPath[] => {
-  return message.media.map(url => {
-    return buildPath(
-      message.user.enName,
-      message.createdAt.toFormat('yyMMdd'),
-      url,
-    )
-  })
-}
-
-const checkForValidImage = async (url: string): Promise<boolean> => {
+const checkForValidImage = async (url: string): Promise<BruteforceAttempt> => {
   const response = await fetch(url);
-  return response.status === 200
+  
+  if (response.status === 200 && response.body !== null) {
+    return {
+      success: true,
+      stream: response.body
+    }
+  } else {
+    return { success: false }
+  }
 }
 
 const parseUrl = (url: string): SplitUrl => {
@@ -72,70 +84,88 @@ const parseUrl = (url: string): SplitUrl => {
   const baseUrl = parts[0].substring(0, parts[0].lastIndexOf("/") + 1);
   const timestamp = parts[0].substring(parts[0].lastIndexOf("/") + 1, parts[0].length);
 
+  const usingThumbnail = parts[2] === 't.jpg'
+
   return {
     base: baseUrl,
     timestamp: Number(timestamp),
     date: Number(parts[1]),
-    imageNumber: Number(parts[2]),
-    extension: parts[3],
+    imageNumber: usingThumbnail ? 1 : Number(parts[2]),
+    extension: usingThumbnail ? parts[2] : parts[3],
   }
 }
 
+export const deriveUrl = (timestamp: number, letterId: number): string => {
+  const time = DateTime.fromMillis(timestamp, { zone: 'Asia/Seoul' });
+  return `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}_1_f.jpg`
+}
+
 export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMessage> => {
-  const foundUrls: string[] = []
+  const foundMedia: Media[] = []
   // fab only sends the first image when it isn't pulled from the individual message endpoint
-  let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0])
+  let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0].url)
+
+  // t.jpg indicates we're using a thumbnail as the base url
+  const usingThumbnail = extension === 't.jpg'
+  if (usingThumbnail) {
+    extension = 'f.jpg'
+  }
 
   // if the image is a postcard thumbnail, we need to adjust what we're checking
-  const isPostcard = message.media[0].includes('_b.jpg')
-  if (isPostcard) {
-    extension = 'f.mp4'
+  if (message.isPostcard) {
+    extension = message.postcardType === PostcardType.IMAGE ? 'f.jpg' : 'f.mp4'
   }
 
   let failures = 0
-  let dateDecreased = false
   const check = async () => {
     let url = `${base}${timestamp}_${date}_${imageNumber}_${extension}`
 
-    if (isPostcard) {
+    if (message.isPostcard) {
       url = `${base}${timestamp}_${date}_${extension}`
     }
 
-    const exists = await checkForValidImage(url)
-    if (exists) {
+    const attempt = await checkForValidImage(url)
+    if (attempt.success) {
       // found an image, check for next one
-      foundUrls.push(url)
+      foundMedia.push({
+        url: url,
+        stream: attempt.stream
+      })
       imageNumber++
 
-      if (isPostcard) {
+      if (message.isPostcard) {
         // we've found our .mp4, time to bail out
-        failures = 5
+        failures = 10
+      } else {
+        // reset upon finding a valid url
+        failures = 0
       }
-      failures = 0
       // console.log(`Found image:`, url)
     } else {
-      // first failure, try decreasing the date, because we have to rely on deriving urls now
-      // only want to do this once and only after before finding anything
-      if (failures === 0 && dateDecreased === false && foundUrls.length === 0) {
-        date--
-        dateDecreased = true
-      }
-
-      // second failure, try increasing the timestamp
-      // if it's a postcard, decrease by 1, otherwise increase by 1
-      if (failures > 0) {
-        timestamp += isPostcard ? -1 : 1
+      // try decreasing the date, because we have to rely on deriving urls now
+      // only want to do this before finding anything and if we're not using the thumbnail url and not on postcards
+      // convert back and from the timestamp so seconds are decremented properly
+      if (foundMedia.length === 0 && usingThumbnail === false && message.isPostcard === false) {
+        const convertedDate = DateTime.fromFormat(String(date), 'yyyyMMddHHmmss')
+        date = Number(convertedDate.minus({ seconds: 1 }).toFormat('yyyyMMddHHmmss'))
+      } else {
+        // try increasing the timestamp
+        // if it's a postcard, decrease by 1, otherwise increase by 1
+        timestamp += message.isPostcard || (usingThumbnail && foundMedia.length === 0) ? -1 : 1
       }
 
       failures++
       // console.log(`Failed image:`, url)
     }
 
-    // bail out if we've failed three times, as it means a timestamp increase/decrease, date decrease AND imageNumber + 1 has failed
+    // set the maximum failures to 5 when checking the datetime, as it's only able to get within 1-3~ tries
+    // otherwise make it 2
+    const maximumFailures = foundMedia.length === 0 ? 5 : 2
+    // bail out if we've failed five times, as it means a timestamp decrement/increment, date decrement AND imageNumber increment have all failed
     // this means either:
     // - we've found all the images
     // - the image url structure has deviated from the expected pattern
-    if (failures < 3) {
+    if (failures < maximumFailures) {
       await check()
     }
   }
@@ -144,18 +174,10 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
   await check()
 
   // if we've found images, replace the existing media with the found urls
-  if (foundUrls.length > 0) {
-    if (isPostcard) {
-      message.media = message.media.concat(foundUrls)
-    } else {
-      message.media = foundUrls
-    }
+  if (foundMedia.length > 0) {
+    message.media = foundMedia
   }
 
   return message
 }
 
-export const deriveUrl = (timestamp: number, letterId: number): string => {
-  const time = DateTime.fromMillis(timestamp, { zone: 'Asia/Seoul' });
-  return `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}_1_f.jpg`
-}

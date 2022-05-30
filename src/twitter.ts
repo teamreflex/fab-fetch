@@ -1,33 +1,51 @@
-import chalk from 'chalk';
-import { getEmoji } from './emoji';
-import { DownloadPath, ParsedMessage } from './types';
-import { TweetV1, TwitterApi } from 'twitter-api-v2';
+import chalk from 'chalk'
+import { DownloadableImage, TwitterAccount } from './types.js'
+import { TweetV1, TwitterApi } from 'twitter-api-v2'
+import { DateTime } from 'luxon'
 
-export const twitterClient = (): TwitterApi => {
-  return new TwitterApi({
-    appKey: process.env.TWITTER_API_KEY as string,
-    appSecret: process.env.TWITTER_API_SECRET as string,
-    accessToken: process.env.TWITTER_ACCESS_TOKEN as string,
-    accessSecret: process.env.TWITTER_ACCESS_SECRET as string,
-  });
+export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE): TwitterApi | undefined => {
+  switch (account) {
+    case TwitterAccount.ARCHIVE:
+      if (!process.env.TWITTER_ARCHIVE_API_KEY) return undefined
+      
+      return new TwitterApi({
+        appKey: process.env.TWITTER_ARCHIVE_API_KEY as string,
+        appSecret: process.env.TWITTER_ARCHIVE_API_SECRET as string,
+        accessToken: process.env.TWITTER_ARCHIVE_ACCESS_TOKEN as string,
+        accessSecret: process.env.TWITTER_ARCHIVE_ACCESS_SECRET as string,
+      })
+    case TwitterAccount.PROFILES:
+      if (!process.env.TWITTER_PROFILES_API_KEY) return undefined
+
+      return new TwitterApi({
+        appKey: process.env.TWITTER_PROFILES_API_KEY as string,
+        appSecret: process.env.TWITTER_PROFILES_API_SECRET as string,
+        accessToken: process.env.TWITTER_PROFILES_ACCESS_TOKEN as string,
+        accessSecret: process.env.TWITTER_PROFILES_ACCESS_SECRET as string,
+      })
+    default:
+      // oh fuggg
+      throw new Error(`Unknown Twitter account: ${account}`)
+  }
 }
 
-export const formatTweet = (message: ParsedMessage): string => {
-  const date = message.createdAt.toFormat('yyMMdd')
-  const time = message.createdAt.toFormat('hh:mma')
+export const formatTweet = (createdAt: string, emoji: string): string => {
+  const date = DateTime.fromISO(createdAt, { zone: 'Asia/Seoul' }).toFormat('yyMMdd')
+  const time = DateTime.fromISO(createdAt, { zone: 'Asia/Seoul' }).toFormat('hh:mma')
 
-  return `[${date}] ${getEmoji(message.user.id)}\n— ${time} KST\n${message.text}`
+  return `[${date}] ${emoji}\n— ${time} KST`
 }
 
-export const postTweet = async (client: TwitterApi, media: DownloadPath[], text: string, isPostcard: boolean) => {
+export const postTweet = async (client: TwitterApi, images: DownloadableImage[], text: string): Promise<boolean> => {
+  if (images.length === 0) {
+    return false
+  }
+
   console.info(chalk.cyan(`Posting to Twitter...`))
 
+  // upload media to twitter
   let mediaIds = await Promise.all(
-    media
-      .filter(media => isPostcard ? media.fullPath.includes('.mp4') : true)
-      .map(
-        image => client.v1.uploadMedia(image.fullPath)
-      )
+    images.map(image => client.v1.uploadMedia(image.path))
   );
 
   // recursively reply to the first tweet until all images are posted
@@ -39,4 +57,6 @@ export const postTweet = async (client: TwitterApi, media: DownloadPath[], text:
       lastTweet = await client.v1.reply(text, lastTweet.id_str, { media_ids: mediaIds.splice(0, 4) })
     }
   }
+
+  return true
 }
