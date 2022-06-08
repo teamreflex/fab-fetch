@@ -1,3 +1,4 @@
+import { sleep } from './functions';
 import chalk from 'chalk'
 import { DownloadableImage, TwitterAccount } from './types.js'
 import { TweetV1, TwitterApi } from 'twitter-api-v2'
@@ -54,6 +55,7 @@ export const postTweet = async (client: TwitterApi, images: DownloadableImage[],
     if (! lastTweet) {
       lastTweet = await client.v1.tweet(text, { media_ids: mediaIds.splice(0, 4) })
     } else {
+      await sleep(5000)
       lastTweet = await client.v1.reply(text, lastTweet.id_str, { media_ids: mediaIds.splice(0, 4) })
     }
   }
