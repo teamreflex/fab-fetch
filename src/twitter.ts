@@ -1,4 +1,4 @@
-import { sleep } from './functions';
+import { sleep } from './functions.js';
 import chalk from 'chalk'
 import { DownloadableImage, TwitterAccount } from './types.js'
 import { TweetV1, TwitterApi } from 'twitter-api-v2'
