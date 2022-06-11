@@ -178,7 +178,7 @@ const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
 
 export const saveMessages = async (): Promise<Message[]> => {
   // fetch messages
-  const unfilteredMessages = await fetchMessages()
+  const unfilteredMessages = (await fetchMessages()).filter(m => m.userId !== 4)
 
   // filter out anything already in the database and anything without media
   const inDatabase = await getRepository(Message).find({
