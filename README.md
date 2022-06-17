@@ -24,6 +24,28 @@ The `ENVIRONMENT` env option toggles whether or not to run once or to run on an 
 
 The `TWITTER_ENABLED` env option toggles posting for both the archives and profiles accounts. The `-without-posting` commands have been removed.
 
+The `DECRYPT_ALL` env option toggles whether or not the bot just outright pays for every post and decrypts the URLs. `false` continues using the bruteforce method. Members using Android phones (only HaSeul currently) still pay for the posts and decrypt.
+
+## Encryption ~ June 2022
+Neowiz has started to encrypt image URLs for thumbnails, letter images, postcard videos and postcard images.
+
+It's using AES256 CBC PKCS5, and the secret key is built up from several parts:
+- A hardcoded IV string
+- Two strings pulled from the same "seed" map. Index 0-9 corresponds to unique strings.
+  - The first takes the last digit from the user's userID and plugs that into the map to get a string.
+  - The second takes the last digit from the letter/postcard updatedAt timestamp (converted to seconds first) and plugs that into the map.
+- A hardcoded string
+- The last three digits of the letter/postcard updatedAt (converted to seconds first)
+
+This encryption ("password key" internally) key is concatenated like so:
+```js
+const passwordKey = `${seed1}_${seed2}${hardcode}${lastThree}`
+```
+
+The relevant strings can be found in `src/encryption.ts`. A caveat to this is that the IV string, hardcoded password key string as well as all 10 seed strings are hardcoded within the application, and requires decompilation to retreive. Chances are each new application update will require these to be retrived.
+
+The API also prefixes and suffixes the URLs with a 6 digit long random number, this results in the hash changing upon every request, likely a obfuscation technique to throw people off.
+
 ## How?
 Because all content is just on CloudFront, and each message has either the first image (letter), or the thumbnail (postcard) attached. Using these, we can bruteforce the rest of the message.
 
