@@ -9,6 +9,7 @@ import { bruteforceImages, deriveUrl, downloadMessage } from "./files.js"
 import { request } from "./http.js"
 import { getEmoji } from './emoji.js';
 import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType, DownloadResult } from "./types.js"
+import { decryptString } from './encryption.js'
 
 const parseMessage = (message: FabMessage): ParsedMessage => {
   let text = ''
@@ -60,6 +61,8 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
   const parsed = {
     id: message.id,
     createdAt: DateTime.fromMillis(message.createdAt, { zone: 'Asia/Seoul' }),
+    // must fetch from the letter/postcard for string decryption
+    updatedAt: String(!!message.postcard ? message.postcard.updatedAt : message.letter.updatedAt),
     user: parseUser(message),
     text: text,
     media: media,
@@ -138,7 +141,16 @@ const payForMessage = async (message: FabMessage): Promise<ParsedMessage> => {
     return parseMessage(message)
   }
 
-  return parseMessage(data.message)
+  const parsed = parseMessage(data.message)
+
+  // decrypt all the media urls
+  console.info(chalk.green(`Decrypting message #${message.id}`))
+  parsed.media = parsed.media.map(media => {
+    media.url = decryptString(parsed.updatedAt, media.url)
+    return media
+  })
+
+  return parsed
 }
 
 const saveImages = (parsedMessage: ParsedMessage): Image[] => {
@@ -177,8 +189,11 @@ const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
 }
 
 export const saveMessages = async (): Promise<Message[]> => {
+  // config for decrypting or bruteforcing
+  const decryptAll = process.env.DECRYPT_ALL === 'true'
+
   // fetch messages
-  const unfilteredMessages = (await fetchMessages()).filter(m => m.userId !== 4)
+  const unfilteredMessages = await fetchMessages()
 
   // filter out anything already in the database and anything without media
   const inDatabase = await getRepository(Message).find({
@@ -194,14 +209,12 @@ export const saveMessages = async (): Promise<Message[]> => {
   const messages: Message[] = []
   for (const fabMessage of filteredMessages) {
     // must pay for posts by members using android due to unpredictable image urls
-    const isAndroid = (fabMessage.userId === 4) // haseul
-    || (!!fabMessage.letter && fabMessage.letter.thumbnail.includes('IMAGE')) // old posts still have thumbnail urls, so this will catch old yves posts
-    || (!!fabMessage.postcard && fabMessage.postcard.thumbnail.includes('IMAGE')) // postcards still have thumbnail urls
+    const isAndroid = fabMessage.userId === 4 // haseul
 
-    // pay for & fetch android posts
-    // bruteforce everything else
+    // need to fetch and pay for android posts
+    // either fetch, pay for and decrypt posts or just bruteforce, depending on config
     console.info(chalk.green('Fetching message from:', chalk.bold.cyan(fabMessage.user?.artist.enName || 'LOONA')))
-    let parsed = isAndroid ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+    let parsed = (isAndroid || decryptAll) ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
 
     // no media found
     if (parsed.media.length === 0) {
