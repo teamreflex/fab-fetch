@@ -180,7 +180,7 @@ export interface Media {
 export interface ParsedMessage {
   id: number
   createdAt: DateTime
-  updatedAt: string
+  updatedAt: number
   emoji: string
   user: FabUser
   text: string
