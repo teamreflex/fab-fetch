@@ -62,7 +62,7 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
     id: message.id,
     createdAt: DateTime.fromMillis(message.createdAt, { zone: 'Asia/Seoul' }),
     // must fetch from the letter/postcard for string decryption
-    updatedAt: String(!!message.postcard ? message.postcard.updatedAt : message.letter.updatedAt),
+    updatedAt: !!message.postcard ? message.postcard.updatedAt : message.letter.updatedAt,
     user: parseUser(message),
     text: text,
     media: media,

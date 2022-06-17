@@ -1,17 +1,9 @@
 import CryptoJS from 'crypto-js'
 
-const seedMap = {
-  0: '3$fI*1',
-  1: '7Y5s_@',
-  2: 'Jd_#rM',
-  3: 'P~wc>9',
-  4: '.of#4a',
-  5: 'ga+f;S',
-  6: 'M?d}#f',
-  7: 'aI8=37',
-  8: 'k@x&d6',
-  9: '5T^d.o',
-}
+const seedMap = [
+  '3$fI*1', '7Y5s_@', 'Jd_#rM', 'P~wc>9', '.of#4a',
+  'ga+f;S', 'M?d}#f', 'aI8=37', 'k@x&d6', '5T^d.o',
+]
 
 /**
  * Decrypts a the encrypted image URL.
@@ -19,20 +11,18 @@ const seedMap = {
  * @param encryptedString string
  * @returns string
  */
-export const decryptString = (timestamp: string, encryptedString: string): string => {
-  const userId = process.env.FAB_USER_ID
-
-  // remove the last 3 chars because it needs to be in seconds
-  const correctLength = timestamp.length - 3
+export const decryptString = (timestamp: number, encryptedString: string): string => {
+  const userId = parseInt(process.env.FAB_USER_ID)
+  const seconds = timestamp / 1000
 
   // get the seed string for the last character of the userId
-  const seed1 = seedMap[parseInt(userId.substring(userId.length - 1, userId.length))]
+  const seed1 = seedMap[userId % 10]
   // get the seed string for the last character of the timestamp
-  const seed2 = seedMap[parseInt(timestamp.substring(correctLength - 1, correctLength))]
+  const seed2 = seedMap[seconds % 10]
   // hardcoded string
   const hardcode = "sp_Dh%voQ!20*22@"
   // get the last 3 characters of the timestamp
-  const lastThree = timestamp.substring(correctLength - 3, correctLength)
+  const lastThree = seconds % 1000
 
   // build the password key
   const passwordKey = `${seed1}_${seed2}${hardcode}${lastThree}`
