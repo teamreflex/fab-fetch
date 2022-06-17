@@ -196,13 +196,19 @@ export const saveMessages = async (): Promise<Message[]> => {
   const unfilteredMessages = await fetchMessages()
 
   // filter out anything already in the database and anything without media
-  const inDatabase = await getRepository(Message).find({
-    where: {
-      messageId: In(unfilteredMessages.map(m => m.id))
-    }
-  })
-  const filteredMessages = unfilteredMessages
-    .filter(message => inDatabase.find(m => m.messageId === message.id) === undefined)
+  // have to chunk this as sqlite doesn't like loading everything in at once
+  const filteredMessages = []
+  const chunkSize = 250;
+  for (let i = 0; i < unfilteredMessages.length; i += chunkSize) {
+    const chunk = unfilteredMessages.slice(i, i + chunkSize);
+
+    const inDatabase = await getRepository(Message).find({
+      where: {
+        messageId: In(chunk.map(m => m.id))
+      }
+    })
+    filteredMessages.push(...chunk.filter(message => inDatabase.find(m => m.messageId === message.id) === undefined))
+  }
   console.info(chalk.green(`Fetched ${filteredMessages.length} new messages`))
 
   // perform various tasks on each message
