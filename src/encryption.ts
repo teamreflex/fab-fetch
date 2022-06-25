@@ -22,7 +22,7 @@ export const decryptString = (timestamp: number, encryptedString: string): strin
   // hardcoded string
   const hardcode = "sp_Dh%voQ!20*22@"
   // get the last 3 characters of the timestamp
-  const lastThree = seconds % 1000
+  const lastThree = String(seconds).substring(7, 10)
 
   // build the password key
   const passwordKey = `${seed1}_${seed2}${hardcode}${lastThree}`
