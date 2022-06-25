@@ -220,7 +220,18 @@ export const saveMessages = async (): Promise<Message[]> => {
     // need to fetch and pay for android posts
     // either fetch, pay for and decrypt posts or just bruteforce, depending on config
     console.info(chalk.green('Fetching message from:', chalk.bold.cyan(fabMessage.user?.artist.enName || 'LOONA')))
-    let parsed = (isAndroid || decryptAll) ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+    let parsed: ParsedMessage;
+    try {
+      parsed = (isAndroid || decryptAll) ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))
+    } catch (e) {
+      if (e.message.includes('Malformed UTF-8 data')) {
+        console.info(chalk.red('Could not decrypt message, skipping'))
+        continue;
+      }
+      console.info(chalk.red('Unknown error:', chalk.bold.red(e.message)))
+      process.exit()
+    }
+    
 
     // no media found
     if (parsed.media.length === 0) {
