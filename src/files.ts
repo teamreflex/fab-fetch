@@ -46,7 +46,7 @@ export const downloadImage = async (media: Media, folder: string, path: string):
 export const downloadMessage = async (message: ParsedMessage): Promise<DownloadResult> => {
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = message.user.enName
-  const date = message.createdAt.toFormat('yyMMdd')
+  const date = message.createdAt.toFormat(process.env.MONTHLY_FOLDERS === 'true' ? 'yyyy-MM' : 'yyMMdd')
   const folder = `${downloadFolder}/${name}/${date}`
 
   try {
