@@ -164,6 +164,7 @@ export interface FabMessage {
   letter?: Letter
   postcard?: Postcard
   group?: Group
+  isNewArtistUserComment: string;
 }
 
 export enum PostcardType {
@@ -224,4 +225,35 @@ export enum DownloadResult {
   SUCCESS = 'SUCCESS',
   NOT_FOUND = 'NOT_FOUND',
   CONNECTION_ERROR = 'CONNECTION_ERROR',
+}
+
+export interface FabComment {
+  id: number;
+  messageId: number;
+  parentId: number;
+  pollId: number;
+  userId: number;
+  groupId: number;
+  isGroup: string;
+  type: number;
+  comment?: string;
+  voiceComment?: string;
+  status: number;
+  createdAt: DateTime;
+  updatedAt: DateTime;
+  isArtist: string;
+  name: string;
+  enName: string;
+  profileImage: string;
+  userNickname: string;
+  isLike: string;
+  subComments: FabComment[];
+  quotedComment?: string;
+}
+
+export interface VoiceCommentDownloadResult {
+  downloadResult: DownloadResult,
+  url?: string;
+  folder?: string;
+  path?: string;
 }
