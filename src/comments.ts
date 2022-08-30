@@ -85,7 +85,7 @@ export const scanComments = async (messages: FabMessage[]): Promise<void> => {
     const comments = await fetchCommentThread(message.id)
     // filter out anything with no voiceComment and anything that's already been saved
     const filteredVoiceComments = []
-    const voiceComments = comments.filter(c => c.voiceComment != null)
+    const voiceComments = comments.filter(c => c.voiceComment !== null)
     // not sure why async filters aren't working here but ok
     for (const voiceComment of voiceComments) {
       const inDatabase: Comment[] = await AppDataSource.getRepository(Comment).find({
@@ -99,10 +99,9 @@ export const scanComments = async (messages: FabMessage[]): Promise<void> => {
     }
 
     if (filteredVoiceComments.length === 0) {
-      return;
+      continue;
     }
     
-    console.info(chalk.green(`Saving ${filteredVoiceComments.length} voice messages...`))
     for (const voiceComment of filteredVoiceComments) {
       const result = await downloadVoiceComment(voiceComment)
       if (result.downloadResult !== DownloadResult.SUCCESS) {
