@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 import { DateTime } from "luxon"
-import { getRepository, In } from 'typeorm'
+import { In } from 'typeorm'
 import { handleProfile, loadArtists } from './artists.js'
 import { Artist } from './entity/Artist.js'
 import { Image } from './entity/Image.js'
@@ -10,6 +10,8 @@ import { request } from "./http.js"
 import { getEmoji } from './emoji.js';
 import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType, DownloadResult } from "./types.js"
 import { decryptString } from './encryption.js'
+import { AppDataSource } from './data-source.js'
+import { scanComments } from './comments.js'
 
 const parseMessage = (message: FabMessage): ParsedMessage => {
   let text = ''
@@ -180,10 +182,10 @@ const buildMessage = async (parsedMessage: ParsedMessage): Promise<Message> => {
   message.memberEmoji = parsedMessage.emoji
   message.createdAt = parsedMessage.createdAt.toISO()
   message.type = parsedMessage.isPostcard ? MessageType.POSTCARD : MessageType.LETTER
-  message.artist = await getRepository(Artist).findOne({ where: { artistId: parsedMessage.user.id } })
+  message.artist = await AppDataSource.getRepository(Artist).findOne({ where: { artistId: parsedMessage.user.id } })
   message.images = saveImages(parsedMessage)
 
-  await getRepository(Message).save(message)
+  await AppDataSource.getRepository(Message).save(message)
 
   return message
 }
@@ -195,6 +197,9 @@ export const saveMessages = async (): Promise<Message[]> => {
   // fetch messages
   const unfilteredMessages = await fetchMessages()
 
+  // we want to operate on already saved messages, but filter on new comments
+  const messagesWithNewComments = unfilteredMessages.filter(m => m.isNewArtistUserComment === 'Y')
+
   // filter out anything already in the database and anything without media
   // have to chunk this as sqlite doesn't like loading everything in at once
   const filteredMessages = []
@@ -202,7 +207,7 @@ export const saveMessages = async (): Promise<Message[]> => {
   for (let i = 0; i < unfilteredMessages.length; i += chunkSize) {
     const chunk = unfilteredMessages.slice(i, i + chunkSize);
 
-    const inDatabase = await getRepository(Message).find({
+    const inDatabase = await AppDataSource.getRepository(Message).find({
       where: {
         messageId: In(chunk.map(m => m.id))
       }
@@ -232,7 +237,6 @@ export const saveMessages = async (): Promise<Message[]> => {
       process.exit()
     }
     
-
     // no media found
     if (parsed.media.length === 0) {
       // try paying for the message
@@ -256,6 +260,10 @@ export const saveMessages = async (): Promise<Message[]> => {
       console.info(chalk.green('Saved message from:', chalk.bold.cyan(parsed.user.enName), `(Found ${parsed.media.length} images/videos)`))
     }
   }
+
+  // scan comment threads for voice messages
+  console.info(chalk.green(`Scanning ${messagesWithNewComments.length} messages for comments...`))
+  await scanComments(messagesWithNewComments)
 
   return messages
 }

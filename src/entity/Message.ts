@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, Relation } from "typeorm";
 import { Artist } from "./Artist.js";
+import { Comment } from "./Comment.js";
 import { Image } from "./Image.js";
 
 export enum MessageType {
@@ -11,6 +12,11 @@ export enum MessageType {
 export class Message {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @OneToMany(() => Comment, comment => comment.message, {
+    cascade: true
+  })
+  comments: Relation<Comment[]>;
 
   @OneToMany(() => Image, image => image.message, {
     cascade: true

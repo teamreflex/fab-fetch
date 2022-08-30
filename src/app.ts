@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import 'dotenv/config'
+import { AppDataSource } from "./data-source.js"
 import { main, startup } from './main.js'
-import { createConnection } from 'typeorm'
 import chalk from 'chalk'
 import { fetchFabVersion } from './http.js'
 
@@ -15,7 +15,7 @@ if (devMode) {
   console.info(chalk.bold.yellow('Development mode'))
 }
 
-createConnection().then(async connection => {
+AppDataSource.initialize().then(async () => {
   console.info(chalk.bold.green('Database connected!'))
 
   if (!devMode) {
@@ -36,6 +36,6 @@ createConnection().then(async connection => {
   } else {
     setInterval(async () => main(post), timeout)
   }
-})
+}).catch(error => console.log(error))
 
 
