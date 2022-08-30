@@ -262,8 +262,10 @@ export const saveMessages = async (): Promise<Message[]> => {
   }
 
   // scan comment threads for voice messages
-  console.info(chalk.green(`Scanning ${messagesWithNewComments.length} messages for comments...`))
-  await scanComments(messagesWithNewComments)
+  if (process.env.VOICE_COMMENTS_ENABLED === 'true') {
+    console.info(chalk.green(`Scanning ${messagesWithNewComments.length} messages for comments...`))
+    await scanComments(messagesWithNewComments)
+  }
 
   return messages
 }
