@@ -23,20 +23,14 @@ const fetchCommentThread = async (messageId: number): Promise<FabComment[]> => {
     process.exit()
   }
 
-  return data.comments.map(c => {
-    return {
-      ...c,
-      createdAt: DateTime.fromMillis(c.createdAt),
-      updatedAt: DateTime.fromISO(c.updatedAt),
-    }
-  })
+  return data.comments
 }
 
 export const buildFolderPath = (comment: FabComment, decryptedUrl: string) => {
   // build folder structure
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = comment.enName
-  const date = comment.createdAt.toFormat(process.env.MONTHLY_FOLDERS === 'true' ? 'yyyy-MM' : 'yyMMdd')
+  const date = DateTime.fromMillis(comment.createdAt, { zone: 'Asia/Seoul' }).toFormat(process.env.MONTHLY_FOLDERS === 'true' ? 'yyyy-MM' : 'yyMMdd')
   const folder = `${downloadFolder}/${name}/${date}/voice_comments`
   const pathSplit = decryptedUrl.split('/')
   const path = pathSplit[pathSplit.length - 1]
@@ -45,7 +39,7 @@ export const buildFolderPath = (comment: FabComment, decryptedUrl: string) => {
 }
 
 export const downloadVoiceComment = async (comment: FabComment): Promise<VoiceCommentDownloadResult> => {
-  const decrypted = decryptString(comment.createdAt.toMillis(), comment.voiceComment)
+  const decrypted = decryptString(comment.createdAt, comment.voiceComment)
 
   const { folder, path } = buildFolderPath(comment, decrypted)
 
@@ -68,8 +62,8 @@ export const downloadVoiceComment = async (comment: FabComment): Promise<VoiceCo
 export const saveComment = async (comment: FabComment, downloadResult: VoiceCommentDownloadResult): Promise<Comment> => {
   const dbComment = new Comment()
   dbComment.commentId = comment.id
-  dbComment.createdAt = comment.createdAt.toISO()
-  dbComment.updatedAt = comment.updatedAt.toISO()
+  dbComment.createdAt = DateTime.fromMillis(comment.createdAt, { zone: 'Asia/Seoul' }).toISO()
+  dbComment.updatedAt = DateTime.fromISO(comment.updatedAt, { zone: 'Asia/Seoul' }).toISO()
   dbComment.type = comment.voiceComment ? CommentType.VOICE : CommentType.TEXT
   dbComment.text = comment.comment
   dbComment.folder = downloadResult.folder

@@ -239,8 +239,8 @@ export interface FabComment {
   comment?: string;
   voiceComment?: string;
   status: number;
-  createdAt: DateTime;
-  updatedAt: DateTime;
+  createdAt: number;
+  updatedAt: string;
   isArtist: string;
   name: string;
   enName: string;

@@ -7,7 +7,7 @@ const seedMap = [
 
 /**
  * Decrypts a the encrypted image URL.
- * @param timestamp string
+ * @param timestamp number
  * @param encryptedString string
  * @returns string
  */
