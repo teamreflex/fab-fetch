@@ -1,6 +1,6 @@
 import chalk from 'chalk'
-import { getRepository } from 'typeorm'
 import { login, userInfo } from "./auth.js"
+import { AppDataSource } from './data-source.js'
 import { Message } from './entity/Message.js'
 import { saveMessages } from './messages.js'
 import { formatTweet, postTweet, twitterClient } from "./twitter.js"
@@ -33,7 +33,7 @@ export const main = async (postToSocial: boolean) => {
 
       // mark message as posted
       message.twitterPosted = true
-      await getRepository(Message).save(message)
+      await AppDataSource.getRepository(Message).save(message)
     }
   }
 }

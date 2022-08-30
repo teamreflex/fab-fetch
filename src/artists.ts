@@ -1,7 +1,6 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { formatTweet, postTweet, twitterClient } from './twitter.js';
 import { DateTime } from "luxon";
-import { getRepository } from "typeorm";
 import { getEmoji } from "./emoji.js";
 import { Artist } from "./entity/Artist.js";
 import { ProfileBanner } from "./entity/ProfileBanner.js";
@@ -10,6 +9,7 @@ import { request } from "./http.js";
 import { FabUser, TwitterAccount } from "./types.js";
 import chalk from 'chalk';
 import { downloadImage } from './files.js';
+import { AppDataSource } from './data-source.js';
 
 // holy shit this is so ugly
 
@@ -23,7 +23,7 @@ export const loadArtists = async (): Promise<Artist[]> => {
 }
 
 const fetchFromDatabase = async (): Promise<Artist[]> => {
-  return await getRepository(Artist).find();
+  return await AppDataSource.getRepository(Artist).find();
 }
 
 const fetchFromRemote = async (): Promise<Artist[]> => {
@@ -43,7 +43,7 @@ const fetchFromRemote = async (): Promise<Artist[]> => {
   artist.nameEn = data.group.enName
   artist.nameKr = data.group.name
   artist.emoji = getEmoji(data.group.id)
-  await getRepository(Artist).save(artist)
+  await AppDataSource.getRepository(Artist).save(artist)
   artists.push(artist)
 
   // then the members
@@ -53,7 +53,7 @@ const fetchFromRemote = async (): Promise<Artist[]> => {
     artist.nameEn = artistUser.artist.enName
     artist.nameKr = artistUser.artist.name
     artist.emoji = getEmoji(artistUser.id)
-    await getRepository(Artist).save(artist)
+    await AppDataSource.getRepository(Artist).save(artist)
     artists.push(artist)
   }
 
@@ -67,7 +67,7 @@ const handleProfilePicture = async (user: FabUser, artist: Artist, twitter?: Twi
   const path = `${folder}/${user.profileImage.split('/').pop()}`
 
   // check if profile picture url exists in the database
-  const profilePicture = await getRepository(ProfilePicture).findOne({
+  const profilePicture = await AppDataSource.getRepository(ProfilePicture).findOne({
     where: {
       url: user.profileImage
     }
@@ -85,7 +85,7 @@ const handleProfilePicture = async (user: FabUser, artist: Artist, twitter?: Twi
   newProfilePicture.url = user.profileImage
   newProfilePicture.folder = folder
   newProfilePicture.path = path
-  await getRepository(ProfilePicture).save(newProfilePicture)
+  await AppDataSource.getRepository(ProfilePicture).save(newProfilePicture)
 
   // download the image
   await downloadImage({
@@ -107,7 +107,7 @@ const handleProfileBanner = async (user: FabUser, artist: Artist, twitter?: Twit
   const path = `${folder}/${user.bannerImage.split('/').pop()}`
 
   // check if profile banner url exists in the database
-  const profileBanner = await getRepository(ProfileBanner).findOne({
+  const profileBanner = await AppDataSource.getRepository(ProfileBanner).findOne({
     where: {
       url: user.bannerImage
     }
@@ -125,7 +125,7 @@ const handleProfileBanner = async (user: FabUser, artist: Artist, twitter?: Twit
   newProfileBanner.url = user.bannerImage
   newProfileBanner.folder = folder
   newProfileBanner.path = path
-  await getRepository(ProfileBanner).save(newProfileBanner)
+  await AppDataSource.getRepository(ProfileBanner).save(newProfileBanner)
 
   // download the image
   await downloadImage({
