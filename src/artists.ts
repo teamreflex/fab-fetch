@@ -63,7 +63,11 @@ const fetchFromRemote = async (): Promise<Artist[]> => {
 const handleProfilePicture = async (user: FabUser, artist: Artist, twitter?: TwitterApi): Promise<void> => {
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = artist.nameEn
-  const folder = `${downloadFolder}/${name}/profile-pictures`
+  const date = DateTime.now().setZone('Asia/Seoul').toFormat('yyyy-MM')
+  let folder = `${downloadFolder}/${name}/profile-pictures`
+  if (process.env.MONTHLY_FOLDERS === 'true') {
+    folder = `${folder}/${date}`
+  }
   const path = `${folder}/${user.profileImage.split('/').pop()}`
 
   // check if profile picture url exists in the database
@@ -103,7 +107,11 @@ const handleProfilePicture = async (user: FabUser, artist: Artist, twitter?: Twi
 const handleProfileBanner = async (user: FabUser, artist: Artist, twitter?: TwitterApi): Promise<void> => {
   const downloadFolder = process.env.DOWNLOAD_FOLDER
   const name = artist.nameEn
-  const folder = `${downloadFolder}/${name}/profile-banners`
+  const date = DateTime.now().setZone('Asia/Seoul').toFormat('yyyy-MM')
+  let folder = `${downloadFolder}/${name}/profile-banners`
+  if (process.env.MONTHLY_FOLDERS === 'true') {
+    folder = `${folder}/${date}`
+  }
   const path = `${folder}/${user.bannerImage.split('/').pop()}`
 
   // check if profile banner url exists in the database
