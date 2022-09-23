@@ -20,11 +20,40 @@ $ nano .env # Fill in your details here, and update the user-agent
 $ npm start
 ```
 
-The `ENVIRONMENT` env option toggles whether or not to run once or to run on an interval as set in the env. The `run dev` commands have been removed.
+## Environment Variables
 
-The `TWITTER_ENABLED` env option toggles posting for both the archives and profiles accounts. The `-without-posting` commands have been removed.
+### `TIMEOUT` (integer)
+Performs message fetching every x milliseconds (`60000` equals 1 minute).
 
-The `DECRYPT_ALL` env option toggles whether or not the bot just outright pays for every post and decrypts the URLs. `false` continues using the bruteforce method. Members using Android phones (only HaSeul currently) still pay for the posts and decrypt.
+### `FAB_USER_ID` (integer)
+This is your user ID from the API. You may need to start the bot once using `FAB_EMAIL` and `FAB_PASSWORD` to read your user ID. This is not your email or username, it's a unique number assigned to your account and is required for multiple endpoints.
+
+### `FAB_VERSION` (string)
+Should be the most up to date version of the app, fetch it from the Google Play Store. The bot will crash when the API responds with a version mismatch.
+
+### `FAB_USER_AGENT` (string)
+Keep this as the default unless you know what you're doing. The `%version%` template can be used to insert the version number set in `FAB_VERSION`. Neowiz could easily block any requests from Android Emulator user agents, which is why this is configurable.
+
+### `API_URL` (string)
+Don't touch this.
+
+### `ENVIRONMENT` (string: `prod` | `dev`)
+Toggles whether or not to run once or to run on an interval as set in the env. The `run dev` commands have been removed.
+
+### `TWITTER_ENABLED` (boolean)
+Toggles posting for both the archives and profiles accounts. The `-without-posting` commands have been removed.
+
+### `DECRYPT_ALL` (boolean)
+Toggles whether or not the bot just outright pays for every post and decrypts the URLs. `false` continues using the bruteforce method. Members using Android phones (only HaSeul currently) still pay for the posts and decrypt.
+
+### `VOICE_COMMENTS_ENABLED` (boolean)
+Saves voice comment audio files or not. These get placed in the `voice_comments/` folder, and is affected by the `MONTHLY_FOLDERS` option.
+
+### `MONTHLY_FOLDERS` (boolean)
+Changes the folder structure. Enabled saves images to a monthly folder structure such as `images/JinSoul/2022-06/`, disables continues using daily folders like `images/JinSoul/220613/`.
+
+### `PAY_ON_FALLBACK` (boolean)
+If a message is found with no media attached, enabling this option forces the bot to pay for the message as a fallback measure. Disabled means it just skips and saves to the database.
 
 ## Encryption ~ June 2022
 Neowiz has started to encrypt image URLs for thumbnails, letter images, postcard videos and postcard images.
@@ -125,6 +154,6 @@ Because there's no longer any URLs by default and it's unable to check the strin
 I don't really know what MIT permits, it's just always been my default. Don't really care what you do, just give credit I guess.
 
 ## Contact
-- [@Kairuxo](https://twitter.com/Kairuxo)
+- [@rfxkairu](https://twitter.com/rfxkairu)
 - kairu@team-reflex.com
 - Discord: Kairu#0613
