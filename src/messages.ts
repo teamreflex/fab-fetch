@@ -1,3 +1,4 @@
+import { parseUserIds } from './functions.js';
 import chalk from 'chalk'
 import { DateTime } from "luxon"
 import { In } from 'typeorm'
@@ -220,7 +221,8 @@ export const saveMessages = async (): Promise<Message[]> => {
   const messages: Message[] = []
   for (const fabMessage of filteredMessages) {
     // must pay for posts by members using android due to unpredictable image urls
-    const isAndroid = fabMessage.userId === 4 // haseul
+    const payForUserIds = parseUserIds();
+    const isAndroid = payForUserIds.includes(fabMessage.userId)
 
     // need to fetch and pay for android posts
     // either fetch, pay for and decrypt posts or just bruteforce, depending on config

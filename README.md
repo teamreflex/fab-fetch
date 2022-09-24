@@ -46,6 +46,9 @@ Toggles posting for both the archives and profiles accounts. The `-without-posti
 ### `DECRYPT_ALL` (boolean)
 Toggles whether or not the bot just outright pays for every post and decrypts the URLs. `false` continues using the bruteforce method. Members using Android phones (only HaSeul currently) still pay for the posts and decrypt.
 
+### `PAY_FOR_USER_IDS` (string)
+Provide a comma delimited string of user IDs to pay for. Defaults to `"4,7"` which is HaSeul and Kim Lip (as of 24/9/22).
+
 ### `VOICE_COMMENTS_ENABLED` (boolean)
 Saves voice comment audio files or not. These get placed in the `voice_comments/` folder, and is affected by the `MONTHLY_FOLDERS` option.
 
