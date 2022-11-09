@@ -1,6 +1,6 @@
 import { SplitUrl, URLVersion } from "./types.js";
 
-export const parseV1Url = (url: string, messageId: number): SplitUrl => {
+export const parseV1Url = (url: string): SplitUrl => {
   const parts = url.split('_')
   const baseUrl = parts[0].substring(0, parts[0].lastIndexOf("/") + 1);
   const timestamp = parts[0].substring(parts[0].lastIndexOf("/") + 1, parts[0].length);
@@ -17,7 +17,7 @@ export const parseV1Url = (url: string, messageId: number): SplitUrl => {
   }
 }
 
-export const parseV2Url = (url: string, messageId: number): SplitUrl => {
+export const parseV2Url = (url: string): SplitUrl => {
   const parts = url.split('_')
   const baseUrl = parts[0].substring(0, parts[0].lastIndexOf("/") + 1);
   const timestamp = parts[0].substring(parts[0].lastIndexOf("/") + 1, parts[0].length);
@@ -36,4 +36,14 @@ export const parseV2Url = (url: string, messageId: number): SplitUrl => {
     imageNumber: Number(imageNumber),
     extension: extension
   }
+}
+
+export const buildUrl = ({ version, base, timestamp, date, imageNumber, extension }: SplitUrl, isPostcard: boolean): string => {
+  const underscore = version === URLVersion.V1 ? '_' : ''
+
+  if (isPostcard) {
+    return `${base}${timestamp}_${date}${underscore}${extension}`
+  }
+
+  return `${base}${timestamp}_${date}_${imageNumber}${underscore}${extension}`
 }

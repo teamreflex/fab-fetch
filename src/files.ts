@@ -1,4 +1,4 @@
-import { parseV1Url, parseV2Url } from './url-version.js';
+import { buildUrl, parseV1Url, parseV2Url } from './url-version.js';
 import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
@@ -95,9 +95,9 @@ export const parseUrl = (url: string, messageId: number): SplitUrl => {
 
   switch (version) {
     case URLVersion.V1:
-      return parseV1Url(url, messageId)
+      return parseV1Url(url)
     case URLVersion.V2:
-      return parseV2Url(url, messageId)
+      return parseV2Url(url)
     default:
       console.info(chalk.bold.red(`Could not determine URL version for message #${messageId}.`))
       process.exit()
@@ -132,14 +132,8 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
 
   let failures = 0
   const check = async () => {
-    // v2 urls remove the underscore between the datetime and the image number
-    const underscore = version === URLVersion.V1 ? '_' : ''
-
-    let url = `${base}${timestamp}_${date}_${imageNumber}${underscore}${extension}`
-
-    if (message.isPostcard) {
-      url = `${base}${timestamp}_${date}${underscore}${extension}`
-    }
+    // build the url as there's different versions
+    const url = buildUrl({ version, base, timestamp, date, imageNumber, extension }, message.isPostcard)
 
     const attempt = await checkForValidImage(url)
     if (attempt.success) {
