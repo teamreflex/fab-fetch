@@ -197,6 +197,7 @@ export interface DownloadPath {
 }
 
 export interface SplitUrl {
+  version: URLVersion
   base: string
   timestamp: number
   date: number
@@ -256,4 +257,12 @@ export interface VoiceCommentDownloadResult {
   url?: string;
   folder?: string;
   path?: string;
+}
+
+export const URLVersion1Regex = /\d{10,}_\d{14,}_t\.jpg/g
+export const URLVersion2Regex = /\d{10,}_\d{14,}t\.jpg/g
+
+export enum URLVersion {
+  V1 = 1,
+  V2 = 2,
 }

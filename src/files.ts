@@ -1,8 +1,9 @@
+import { parseV1Url, parseV2Url } from './url-version.js';
 import { createWriteStream, existsSync, mkdirSync } from "fs";
 import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
-import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType, BruteforceAttempt, Media, DownloadResult } from "./types.js";
+import { ParsedMessage, SplitUrl, DownloadableImage, PostcardType, BruteforceAttempt, Media, DownloadResult, URLVersion, URLVersion1Regex, URLVersion2Regex } from "./types.js";
 import retry from "async-retry"
 import chalk from "chalk";
 import { DateTime } from "luxon";
@@ -79,31 +80,44 @@ const checkForValidImage = async (url: string): Promise<BruteforceAttempt> => {
   }
 }
 
-const parseUrl = (url: string): SplitUrl => {
-  const parts = url.split('_')
-  const baseUrl = parts[0].substring(0, parts[0].lastIndexOf("/") + 1);
-  const timestamp = parts[0].substring(parts[0].lastIndexOf("/") + 1, parts[0].length);
+const getUrlVersion = (url: string, messageId: number): URLVersion => {
+  if (URLVersion1Regex.test(url)) {
+    return URLVersion.V1
+  }
 
-  const usingThumbnail = parts[2] === 't.jpg'
+  if (URLVersion2Regex.test(url)) {
+    return URLVersion.V2
+  }
+}
 
-  return {
-    base: baseUrl,
-    timestamp: Number(timestamp),
-    date: Number(parts[1]),
-    imageNumber: usingThumbnail ? 1 : Number(parts[2]),
-    extension: usingThumbnail ? parts[2] : parts[3],
+export const parseUrl = (url: string, messageId: number): SplitUrl => {
+  const version = getUrlVersion(url.split('/').pop(), messageId)
+
+  switch (version) {
+    case URLVersion.V1:
+      return parseV1Url(url, messageId)
+    case URLVersion.V2:
+      return parseV2Url(url, messageId)
+    default:
+      console.info(chalk.bold.red(`Could not determine URL version for message #${messageId}.`))
+      process.exit()
   }
 }
 
 export const deriveUrl = (timestamp: number, letterId: number): string => {
-  const time = DateTime.fromMillis(timestamp, { zone: 'Asia/Seoul' });
-  return `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}_1_f.jpg`
+  const time = DateTime.fromMillis(timestamp, { zone: 'Asia/Seoul' })
+  let extension = '_1_f.jpg'
+  // extensions changed after letterId 2994 (messageId 3565)
+  if (letterId >= 2994) {
+    extension = '_1f.jpg'
+  }
+  return `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}${extension}`
 }
 
 export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMessage> => {
   const foundMedia: Media[] = []
   // fab only sends the first image when it isn't pulled from the individual message endpoint
-  let { base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0].url)
+  let { version, base, timestamp, date, imageNumber, extension } = parseUrl(message.media[0].url, message.id)
 
   // t.jpg indicates we're using a thumbnail as the base url
   const usingThumbnail = extension === 't.jpg'
@@ -118,10 +132,13 @@ export const bruteforceImages = async (message: ParsedMessage): Promise<ParsedMe
 
   let failures = 0
   const check = async () => {
-    let url = `${base}${timestamp}_${date}_${imageNumber}_${extension}`
+    // v2 urls remove the underscore between the datetime and the image number
+    const underscore = version === URLVersion.V1 ? '_' : ''
+
+    let url = `${base}${timestamp}_${date}_${imageNumber}${underscore}${extension}`
 
     if (message.isPostcard) {
-      url = `${base}${timestamp}_${date}_${extension}`
+      url = `${base}${timestamp}_${date}${underscore}${extension}`
     }
 
     const attempt = await checkForValidImage(url)
