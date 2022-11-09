@@ -22,11 +22,12 @@ export const parseV2Url = (url: string): SplitUrl => {
   const baseUrl = parts[0].substring(0, parts[0].lastIndexOf("/") + 1);
   const timestamp = parts[0].substring(parts[0].lastIndexOf("/") + 1, parts[0].length);
 
-  const usingThumbnail = parts[1].includes('t.jpg')
+  const extension = parts[1].replace(/[0-9]/g, '')
+  const usingThumbnail = ['b.jpg', 't.jpg'].includes(extension)
   // match the first 14 digits
   const datetime = usingThumbnail ? parts[1].match(/\d{14,}/g)[0] : parts[1]
-  const imageNumber = usingThumbnail ? 1 : parts[2].substring(0, parts[2].length - 4)
-  const extension = parts[1].replace(/[0-9]/g, '')
+  const imageNumber = usingThumbnail ? 1 : parts[1].substring(0, parts[1].length - 4)
+  
 
   return {
     version: URLVersion.V2,

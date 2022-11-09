@@ -259,8 +259,8 @@ export interface VoiceCommentDownloadResult {
   path?: string;
 }
 
-export const URLVersion1Regex = /\d{10,}_\d{14,}_t\.jpg/g
-export const URLVersion2Regex = /\d{10,}_\d{14,}t\.jpg/g
+export const URLVersion1Regex = /\d{10,}_\d{14,}_[tb]\.jpg/
+export const URLVersion2Regex = /\d{10,}_\d{14,}[tb]\.jpg/
 
 export enum URLVersion {
   V1 = 1,

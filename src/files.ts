@@ -91,7 +91,7 @@ const getUrlVersion = (url: string, messageId: number): URLVersion => {
 }
 
 export const parseUrl = (url: string, messageId: number): SplitUrl => {
-  const version = getUrlVersion(url.split('/').pop(), messageId)
+  const version = getUrlVersion(url, messageId)
 
   switch (version) {
     case URLVersion.V1:
