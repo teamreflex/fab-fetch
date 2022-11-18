@@ -12,7 +12,7 @@ const seedMap = [
  * @returns string
  */
 export const decryptString = (timestamp: number, encryptedString: string): string => {
-  const userId = parseInt(process.env.FAB_USER_ID)
+  const userId = parseInt(process.env.FAB_USER_ID as string)
   const seconds = timestamp / 1000
 
   // get the seed string for the last character of the userId

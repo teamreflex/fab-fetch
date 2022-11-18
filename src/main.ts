@@ -1,39 +1,55 @@
-import chalk from 'chalk'
-import { login, userInfo } from "./auth.js"
-import { AppDataSource } from './data-source.js'
-import { Message } from './entity/Message.js'
-import { saveMessages } from './messages.js'
-import { formatTweet, postTweet, twitterClient } from "./twitter.js"
-import { User } from "./types.js"
+import { getEmoji, Log } from './util';
+import { handleProfileChanges } from './fab/profile';
+import { fetchGroupMembers } from "./fab/artists"
+import { client, format, post } from "./social/twitter"
+import { fetchMessages, handleMessage, saveToDatabase } from './fab/messages';
+import chalk from 'chalk';
+import { DownloadResult } from './types';
+import { scanComments } from './fab/comments';
 
-export const startup = async (): Promise<User> => {
-  if (! process.env.FAB_ACCESS_TOKEN) {
-    const { user } = await login()
-    return user
-  } else {
-    console.info(chalk.green('Using access token...'))
-    return await userInfo()
-  }
-}
-
-export const main = async (postToSocial: boolean) => {
+/**
+ * Main process.
+ * @param postToSocial boolean
+ * @returns Promise<void>
+ */
+export const main = async (postToSocial: boolean): Promise<void> => {
   let twitter: any = null
   if (postToSocial) {
-    twitter = twitterClient()
+    twitter = client()
   }
 
-  // fetch messages and filter them
-  const messages = await saveMessages()
+  // fetch group
+  const artists = await fetchGroupMembers()
 
-  // tweet if necessary
-  for (const message of messages) {
-    // tweet
-    if (postToSocial) {
-      await postTweet(twitter, message.images, formatTweet(message.createdAt, message.memberEmoji))
+  // handle profile updates
+  await handleProfileChanges(artists)
 
-      // mark message as posted
-      message.twitterPosted = true
-      await AppDataSource.getRepository(Message).save(message)
+  // fetch latest messages
+  const {
+    messagesWithNewComments,
+    filteredMessages,
+  } = await fetchMessages({ all: false })
+
+  // handle letters/postcards
+  for (const message of filteredMessages) {
+    let socialPosted = false
+    const { result, media } = await handleMessage(message)
+    if (result === DownloadResult.SUCCESS && media.length > 0) {
+      // post to twitter
+      if (postToSocial) {
+        const text = format(message.createdAt, getEmoji(message.userId))
+        socialPosted = await post(twitter, media, text)
+      }
+
+      // save to database
+      saveToDatabase(message, media, socialPosted)
+      Log.success(`Saved message from: ${chalk.bold.cyan(message.user.artist.enName)} (Found ${media.length} images/videos)`)
     }
+  }
+
+  // scan comment threads for voice messages
+  if (process.env.VOICE_COMMENTS_ENABLED === 'true') {
+    Log.success(`Scanning ${messagesWithNewComments.length} messages for comments...`)
+    await scanComments(messagesWithNewComments)
   }
 }

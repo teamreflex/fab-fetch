@@ -1,0 +1,27 @@
+version: '3.7'
+
+services:
+  postgres:
+    container_name: fab-fetch-db
+    image: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: fab-fetch
+      POSTGRES_PORT: 5432
+    ports:
+      - '5432:5432'
+
+  bot:
+    container_name: fab-fetch
+    build: .
+    command: npm start
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    tty: true
+
+networks:
+  default:
+    driver: bridge

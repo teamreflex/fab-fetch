@@ -1,10 +1,14 @@
-import { sleep } from './functions.js';
-import chalk from 'chalk'
-import { DownloadableImage, TwitterAccount } from './types.js'
+import { SavedMedia, TwitterAccount } from '../types'
 import { TweetV1, TwitterApi } from 'twitter-api-v2'
 import { DateTime } from 'luxon'
+import { Log, sleep } from '../util'
 
-export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE): TwitterApi | undefined => {
+/**
+ * Build up the Twitter client.
+ * @param account TwitterAccount
+ * @returns TwitterApi | undefined
+ */
+export const client = (account: TwitterAccount = TwitterAccount.ARCHIVE): TwitterApi | undefined => {
   switch (account) {
     case TwitterAccount.ARCHIVE:
       if (!process.env.TWITTER_ARCHIVE_API_KEY) return undefined
@@ -30,23 +34,32 @@ export const twitterClient = (account: TwitterAccount = TwitterAccount.ARCHIVE):
   }
 }
 
-export const formatTweet = (createdAt: string, emoji: string): string => {
-  const date = DateTime.fromISO(createdAt, { zone: 'Asia/Seoul' }).toFormat('yyMMdd')
-  const time = DateTime.fromISO(createdAt, { zone: 'Asia/Seoul' }).toFormat('hh:mma')
+/**
+ * Formats the given date into a usable string in KST format.
+ * @param createdAt string
+ * @param emoji string
+ * @returns string
+ */
+export const format = (createdAt: DateTime, emoji: string): string => {
+  const date = createdAt.toFormat('yyMMdd')
+  const time = createdAt.toFormat('hh:mma')
 
   return `[${date}] ${emoji}\n— ${time} KST`
 }
 
-export const postTweet = async (client: TwitterApi, images: DownloadableImage[], text: string): Promise<boolean> => {
-  if (images.length === 0) {
-    return false
-  }
-
-  console.info(chalk.cyan(`Posting to Twitter...`))
+/**
+ * Recursively posts the given images to Twitter.
+ * @param client TwitterApi
+ * @param media SavedMedia[]
+ * @param text string
+ * @returns Promise<boolean>
+ */
+export const post = async (client: TwitterApi, media: SavedMedia[], text: string): Promise<boolean> => {
+  Log.info(`Posting to Twitter...`)
 
   // upload media to twitter
   let mediaIds = await Promise.all(
-    images.map(image => client.v1.uploadMedia(image.path))
+    media.map(image => client.v1.uploadMedia(image.path))
   );
 
   // recursively reply to the first tweet until all images are posted

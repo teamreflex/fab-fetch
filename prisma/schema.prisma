@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Artist {
+  id              Int              @id @default(autoincrement())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  messages        Message[]
+  profileBanners  ProfileBanner[]
+  profilePictures ProfilePicture[]
+  fabArtistId     Int
+  nameEn          String
+  nameKr          String
+  emoji           String
+}
+
+enum MessageType {
+  LETTER
+  POSTCARD_IMAGE
+  POSTCARD_VIDEO
+}
+
+model Message {
+  id           Int         @id @default(autoincrement())
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  artist       Artist      @relation(fields: [artistId], references: [id])
+  artistId     Int
+  comments     Comment[]
+  images       Image[]
+  fabMessageId Int
+  type         MessageType
+  socialPosted Boolean     @default(false)
+}
+
+enum CommentType {
+  TEXT
+  VOICE
+}
+
+model Comment {
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  message         Message     @relation(fields: [messageId], references: [id])
+  messageId       Int
+  fabCommentId    Int
+  text            String?
+  voiceMessageUrl String?
+  path            String?
+  type            CommentType
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  message   Message  @relation(fields: [messageId], references: [id])
+  messageId Int
+  url       String
+  path      String
+}
+
+model ProfileBanner {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  artist       Artist   @relation(fields: [artistId], references: [id])
+  artistId     Int
+  url          String
+  path         String
+  socialPosted Boolean  @default(false)
+}
+
+model ProfilePicture {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  artist       Artist   @relation(fields: [artistId], references: [id])
+  artistId     Int
+  url          String
+  path         String
+  socialPosted Boolean  @default(false)
+}
