@@ -41,7 +41,7 @@ export const fetchGroupMembers = async (): Promise<FabArtistUser[]> => {
   groupUser.profileImage = data.group.profileImage
 
   // save to the database
-  saveArtistsToDatabase([groupUser, ...parsed])
+  await saveArtistsToDatabase([groupUser, ...parsed])
 
   return [groupUser, ...parsed];
 }
