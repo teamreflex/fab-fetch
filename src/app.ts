@@ -24,6 +24,7 @@ async function startup() {
   if (devMode === false) {
     // fetch the Fab app version
     if (! process.env.FAB_VERSION) {
+      Log.warning(`No Fab version provided, fetching from Play Store...`)
       process.env.FAB_VERSION = await fetchFabVersion()
     }
     Log.info(`Loaded Fab version: ${chalk.bold(process.env.FAB_VERSION)}`)
