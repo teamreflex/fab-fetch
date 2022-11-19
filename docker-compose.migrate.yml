@@ -13,11 +13,11 @@ services:
     ports:
       - '5432:5432'
 
-  bot:
-    container_name: fab-fetch
-    build: .
-    command: npm start
-    restart: unless-stopped
+  bot-migrate:
+    container_name: fab-fetch-migrate
+    build: ..
+    command: npx prisma migrate deploy && npm run migrate
+    restart: 'no'
     depends_on:
       - postgres
     tty: true
