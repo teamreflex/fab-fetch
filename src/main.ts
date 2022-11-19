@@ -28,7 +28,7 @@ export const main = async (postToSocial: boolean): Promise<void> => {
   const {
     messagesWithNewComments,
     filteredMessages,
-  } = await fetchMessages({ all: true })
+  } = await fetchMessages({ all: process.env.FETCH_ALL === 'true' })
 
   // handle letters/postcards
   for (const message of filteredMessages) {

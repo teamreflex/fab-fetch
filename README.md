@@ -53,6 +53,9 @@ Toggles posting for both the archives and profiles accounts. The `-without-posti
 ### `DECRYPT_ALL` (boolean)
 Toggles whether or not the bot just outright pays for every post and decrypts the URLs. `false` continues using the bruteforce method. Members using Android phones (only HaSeul currently) still pay for the posts and decrypt.
 
+### `FETCH_ALL` (boolean)
+Toggles whether or not to fetch the last 10 messages per artist (`true`), or just the last 10 messages across all artists in the app (`false`).
+
 ### `PAY_FOR_USER_IDS` (string)
 Provide a comma delimited string of user IDs to pay for. Defaults to `"4,7"` which is HaSeul and Kim Lip (as of 24/9/22).
 
