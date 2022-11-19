@@ -2,20 +2,24 @@
 Fetch and archive content from Fab.
 
 ## Requirements
-- Only tested on Node 14
+- Only tested on Node 18
 - A Fab account, either email & password or an already generated access token.
-- Python, as the sqlite3 Node binding needs it to compile
+- Either Docker, or a PostgreSQL database running.
 
 ## Setup
 ```bash
 $ git clone git@github.com:teamreflex/fab-fetch.git
 $ cd fab-fetch
-$ npm install
 $ cp .env.example .env
 $ nano .env # Fill in your details here, and update the user-agent
 ```
 
 ## Running
+### Docker
+```bash
+$ docker compose up
+```
+### Node
 ```bash
 $ npm start
 ```
@@ -39,6 +43,9 @@ Don't touch this.
 
 ### `ENVIRONMENT` (string: `prod` | `dev`)
 Toggles whether or not to run once or to run on an interval as set in the env. The `run dev` commands have been removed.
+
+### `GROUP_ID` (integer)
+Group from Fab to fetch from. Defaults to 1 (LOONA).
 
 ### `TWITTER_ENABLED` (boolean)
 Toggles posting for both the archives and profiles accounts. The `-without-posting` commands have been removed.

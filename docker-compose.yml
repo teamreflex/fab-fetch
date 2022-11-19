@@ -16,11 +16,12 @@ services:
   bot:
     container_name: fab-fetch
     build: .
-    command: npm start
+    command: ["bash", "start.sh"]
     restart: unless-stopped
     depends_on:
       - postgres
-    tty: true
+    volumes:
+      - ./data:/app/data
 
 networks:
   default:
