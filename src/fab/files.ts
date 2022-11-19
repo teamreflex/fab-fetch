@@ -90,12 +90,16 @@ export const downloadMessage = async (message: FabMessage, unsavedMedia: Media[]
       media: savedMedia,
     }
   } catch (e) {
-    if ((e as string).includes('404')) {
-      Log.warning(`Skipping message #${message.id} due to no images`)
-      return {
-        result: DownloadResult.NOT_FOUND,
-        media: [],
+    if (e instanceof Error) {
+      if (e.message.includes('404')) {
+        Log.warning(`Skipping message #${message.id} due to no images`)
+        return {
+          result: DownloadResult.NOT_FOUND,
+          media: [],
+        }
       }
+    } else {
+      Log.error(e as string)
     }
     
     return {

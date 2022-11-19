@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import prisma from "../database"
 import { request } from "../http"
 import { FetchMessagesOptions, FabMessage, MessageType, MessageResponse, RawMessage, Media, SavedMedia, DownloadResponse, DownloadResult } from "../types"
@@ -94,12 +95,15 @@ const payForMessage = async (message: FabMessage): Promise<Media[]> => {
   // decrypt all the media urls
   Log.success(`Decrypting message #${message.id}`)
 
-  // figure out all the media urls
+  // figure out all the media urls and timestamp for decryption
+  let updatedAt: DateTime
   let media: Media[] = []
   if (parsed.messageType === MessageType.LETTER && parsed.letter) {
+    updatedAt = parsed.letter.updatedAt
     media = (parsed.letter?.images || []).map(image => ({ url: image.image }))
   }
   if (parsed.postcard) {
+    updatedAt = parsed.postcard.updatedAt
     if (parsed.messageType === MessageType.POSTCARD_IMAGE) {
       media = [{ url: parsed.postcard.postcardImage }]
     } else {
@@ -108,7 +112,7 @@ const payForMessage = async (message: FabMessage): Promise<Media[]> => {
   }
 
   return media.map(media => {
-    media.url = decryptString(parsed.updatedAt.toMillis(), media.url)
+    media.url = decryptString(updatedAt.toMillis(), media.url)
     return media
   })
 }
