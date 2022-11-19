@@ -1,5 +1,13 @@
-import { SplitUrl, URLVersion } from "../types";
-import { Log } from "../util";
+import { AvailableRegex, SplitUrl, URLVersion } from "../types"
+import { Log } from "../util"
+
+export const availableRegex: AvailableRegex[] = [
+  { version: URLVersion.V1, test: /\d{10,}_\d{14,}_[tb]\.jpg/ },
+  { version: URLVersion.V1, test: /\d{10,}_\d{14,}_[fb]\.(jpg|mp4)/ },
+  { version: URLVersion.V1, test: /\d{10,}_\d{14,}_\d{1,2}_f\.jpg/ },
+  { version: URLVersion.V2, test: /\d{10,}_\d{14,}[tb]\.jpg/ },
+  { version: URLVersion.V2, test: /\d{10,}_\d{14,}[fb]\.(jpg|mp4)/ },
+]
 
 /**
  * Parse a URL based on the v1 type.

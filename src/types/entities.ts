@@ -94,7 +94,7 @@ export type FabMessage = {
   isGroup: boolean
   createdAt: DateTime
   updatedAt: DateTime
-  user: FabArtistUser
+  user?: FabArtistUser
   isLike: boolean
   isSave: boolean
   isRead: boolean
@@ -105,6 +105,7 @@ export type FabMessage = {
   group?: FabGroup
   isNewArtistUserComment: boolean;
   messageType: MessageType
+  enName: string
 }
 
 export type FabComment = {

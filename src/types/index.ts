@@ -1,5 +1,5 @@
-import { DateTime } from "luxon"
-import { FabMessage } from "./entities"
+import { Artist } from "@prisma/client"
+import { FabArtistUser, FabMessage } from "./entities"
 import { RawArtistUser } from "./fab"
 
 export * from './fab'
@@ -34,6 +34,11 @@ export type LoginResponse = {
     token: string,
     user: User,
   }
+}
+
+export type FetchGroupResponse = {
+  fabArtists: FabArtistUser[]
+  dbArtists: Artist[]
 }
 
 export type ImagePath = {
@@ -134,6 +139,16 @@ export const URLVersion1Regex = /\d{10,}_\d{14,}_[tb]\.jpg/
 export const URLVersion2Regex = /\d{10,}_\d{14,}[tb]\.jpg/
 
 export enum URLVersion {
-  V1 = 1,
-  V2 = 2,
+  V1 = 'V1',
+  V2 = 'V2',
+}
+
+export type DerivedURL = {
+  url: string
+  version: URLVersion
+}
+
+export type AvailableRegex = {
+  version: URLVersion
+  test: RegExp
 }

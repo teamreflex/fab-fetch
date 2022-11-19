@@ -21,7 +21,7 @@ services:
     depends_on:
       - postgres
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data:z
 
 networks:
   default:

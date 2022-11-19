@@ -1,15 +1,16 @@
-import { Artist } from "@prisma/client";
-import prisma from "../database";
-import { request } from "../http";
-import { FabArtistUser, FabMessage, RawGroup, RawMessage } from "../types";
-import { getEmoji, Log } from "../util";
-import { Parsing } from "./parsing";
+import { Artist } from "@prisma/client"
+import cloneDeep from 'lodash/cloneDeep'
+import prisma from "../database"
+import { request } from "../http"
+import { FabArtistUser, FabMessage, FetchGroupResponse, RawGroup, RawMessage } from "../types"
+import { getEmoji, Log } from "../util"
+import { Parsing } from "./parsing"
 
 /**
  * Fetch all group members in one request.
  * @returns Promise<ArtistUser[]>
  */
-export const fetchGroupMembers = async (): Promise<FabArtistUser[]> => {
+export const fetchGroupMembers = async (): Promise<FetchGroupResponse> => {
   const groupId = Number(process.env.GROUP_ID)
   if (!groupId) {
     Log.error('Group ID is invalid. Please check your .env file.')
@@ -30,9 +31,9 @@ export const fetchGroupMembers = async (): Promise<FabArtistUser[]> => {
 
   // parse entities
   const parsed = data.group.artistUsers.map((artistUser: any) => Parsing.artistUser(artistUser))
-  
+
   // handle the group account
-  const groupUser = parsed[0]
+  const groupUser = cloneDeep(parsed[0])
   groupUser.id = data.group.id
   groupUser.nickName = data.group.enName
   groupUser.artist.name = data.group.name
@@ -40,27 +41,35 @@ export const fetchGroupMembers = async (): Promise<FabArtistUser[]> => {
   groupUser.artist.bannerImage = data.group.bannerImage
   groupUser.profileImage = data.group.profileImage
 
-  // save to the database
-  await saveArtistsToDatabase([groupUser, ...parsed])
+  // save to the database or fetch if they already exist
+  const dbArtists = await saveOrFetchArtists([groupUser, ...parsed])
 
-  return [groupUser, ...parsed];
+  return {
+    fabArtists: [groupUser, ...parsed],
+    dbArtists,
+  };
 }
 
 /**
- * Saves artists into the database if they don't exist.
+ * Saves artists into the database if they don't exist and returns if they do.
  * @param artistUsers ArtistUser[]
- * @returns Promise<void>
+ * @returns Promise<Artist[]>
  */
-const saveArtistsToDatabase = async (artistUsers: FabArtistUser[]): Promise<void> => {
+const saveOrFetchArtists = async (artistUsers: FabArtistUser[]): Promise<Artist[]> => {
+  const artists: Artist[] = []
   for (const artistUser of artistUsers) {
-    const artistCount = await prisma.artist.count({
+    let artist: Artist | null;
+
+    // check if it exists
+    artist = await prisma.artist.findFirst({
       where: {
         fabArtistId: artistUser.id,
       }
     })
 
-    if (artistCount === 0) {
-      await prisma.artist.create({
+    // create if it doesn't
+    if (!artist) {
+      artist = await prisma.artist.create({
         data: {
           fabArtistId: artistUser.id,
           nameEn: artistUser.artist.enName,
@@ -69,15 +78,11 @@ const saveArtistsToDatabase = async (artistUsers: FabArtistUser[]): Promise<void
         }
       })
     }
-  }
-}
 
-/**
- * Fetches all artists out the database.
- * @returns Promise<Artist[]>
- */
-export const fetchArtistsFromDatabase = async (): Promise<Artist[]> => {
-  return await prisma.artist.findMany()
+    artists.push(artist)
+  }
+
+  return artists
 }
 
 /**

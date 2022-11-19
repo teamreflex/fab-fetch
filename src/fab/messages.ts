@@ -29,7 +29,7 @@ export const fetchLatestMessages = async (): Promise<FabMessage[]> => {
 
   return data.messages
     .map((message: RawMessage) => Parsing.message(message))
-    .filter((message: FabMessage) => message.user.artist.groupId === Number(process.env.GROUP_ID))
+    .filter((message: FabMessage) => message.groupId === Number(process.env.GROUP_ID))
 }
 
 /**
@@ -113,6 +113,13 @@ const payForMessage = async (message: FabMessage): Promise<Media[]> => {
   })
 }
 
+/**
+ * Save the message to the database.
+ * @param message FabMessage
+ * @param media SavedMedia[]
+ * @param socialPosted boolean
+ * @returns Promise<Message>
+ */
 export const saveToDatabase = async (message: FabMessage, media: SavedMedia[], socialPosted: boolean): Promise<Message> => {
   const artist = await prisma.artist.findFirst({
     where: {
@@ -151,11 +158,11 @@ export const saveToDatabase = async (message: FabMessage, media: SavedMedia[], s
  */
 const getStarterMedia = (message: FabMessage): Media[] => {
   if (message.postcard) {
-    return [{ url: message.postcard.thumbnail }]
+    return message.postcard.thumbnail ? [{ url: message.postcard.thumbnail }] : []
   }
 
   if (message.letter) {
-    return [{ url: message.letter.thumbnail }]
+    return message.letter.thumbnail ? [{ url: message.letter.thumbnail }] : []
   }
 
   Log.error(`Letter and postcard missing from message #${message.id}`)
@@ -171,33 +178,24 @@ export const handleMessage = async (message: FabMessage): Promise<DownloadRespon
   // config for decrypting or bruteforcing
   const decryptAll = process.env.DECRYPT_ALL === 'true'
 
+  // get thumbnails as starting point
+  const starter = getStarterMedia(message)
+
   // must pay for posts by members using android due to unpredictable image urls
+  const hasAndroidUrl = starter.some(s => s.url.includes('_IMAGE_'))
   const payForUserIds = parseUserIds();
-  const isAndroid = payForUserIds.includes(message.userId)
+  const isAndroid = payForUserIds.includes(message.userId) || hasAndroidUrl
   const pay = isAndroid || decryptAll
 
   // need to fetch and pay for android posts
   // either fetch, pay for and decrypt posts or just bruteforce, depending on config
-  Log.success(`Fetching message from: ${chalk.bold.cyan(message.user.artist.enName || 'LOONA')}`)
+  Log.success(`Fetching message from: ${chalk.bold.cyan(message.enName)}`)
 
   let unsavedMedia: Media[] = []
   try {
-    unsavedMedia = pay ? await payForMessage(message) : await bruteforceImages(message, getStarterMedia(message))
-  } catch (e) {
-    if (e instanceof Error) {
-      if (e.message.includes('Malformed UTF-8 data')) {
-        Log.error('Could not decrypt message, skipping')
-        return {
-          result: DownloadResult.DECRYPTION_ERROR,
-          media: [],
-        }
-      }
-      Log.error(`Unknown error: ${JSON.stringify(e)}`)
-      process.exit()
-    }
-  }
+    unsavedMedia = pay ? await payForMessage(message) : await bruteforceImages(message, starter)
 
-  // no media found
+    // no media found
   if (unsavedMedia.length === 0) {
     // try paying for the message
     if (process.env.PAY_ON_FALLBACK === 'true' && !pay) {
@@ -207,11 +205,25 @@ export const handleMessage = async (message: FabMessage): Promise<DownloadRespon
 
     // if there's still no media, save to the db and skip, otherwise continue and download
     if (unsavedMedia.length === 0) {
+      Log.warning('No media found, skipping')
       await saveToDatabase(message, [], false)
       return {
         result: DownloadResult.NOT_FOUND,
         media: [],
       }
+    }
+  }
+  } catch (e) {
+    if (e instanceof Error) {
+      if (e.message.includes('Malformed UTF-8 data')) {
+        Log.error('Could not decrypt message, skipping')
+        return {
+          result: DownloadResult.DECRYPTION_ERROR,
+          media: [],
+        }
+      }
+      Log.error(`${e.message}`)
+      process.exit()
     }
   }
 

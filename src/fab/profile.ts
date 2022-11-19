@@ -3,24 +3,24 @@ import { TwitterApi } from 'twitter-api-v2';
 import { Artist } from "@prisma/client";
 import { client, format, post } from "../social/twitter";
 import { FabArtistUser, ImagePath, TwitterAccount } from "../types";
-import { fetchArtistsFromDatabase } from "./artists";
 import { DateTime } from 'luxon';
 import prisma from '../database';
+import { downloadImage } from './files';
+import chalk from 'chalk';
 
 /**
  * Handle any profile changes.
  * @param artistUsers ArtistUser[]
+ * @param dbArtists Artist[]
  * @returns Promise<void>
  */
-export const handleProfileChanges = async (artistUsers: FabArtistUser[]): Promise<void> => {
+export const handleProfileChanges = async (artistUsers: FabArtistUser[], dbArtists: Artist[]): Promise<void> => {
   const post = process.env.TWITTER_ENABLED === 'true'
   const twitter = post ? client(TwitterAccount.PROFILES) : undefined
 
-  const artists = await fetchArtistsFromDatabase()
-
   const promises: Promise<void>[] = []
   for (const artistUser of artistUsers) {
-    const artist = artists.find(artist => artist.fabArtistId === artistUser.id)
+    const artist = dbArtists.find(artist => artist.fabArtistId === artistUser.id)
     if (!artist) {
       Log.error(`Could not find artist with ID #${artistUser.id} in the database.`)
       continue
@@ -46,12 +46,12 @@ const handleProfilePicture = async (artistUser: FabArtistUser, artist: Artist, t
 
   // check if profile picture url exists in the database
   const count = await prisma.profilePicture.count({ where: { url } })
-  if (count >= 0) {
+  if (count >= 1) {
     return;
   }
 
   // if not, save it to the database
-  Log.success(`Found new profile picture for: ${artistUser.artist.enName}`)
+  Log.success(`Found new profile picture for: ${chalk.cyan(artistUser.artist.enName)}`)
   await prisma.profilePicture.create({
     data: {
       artistId: artist.id,
@@ -61,14 +61,14 @@ const handleProfilePicture = async (artistUser: FabArtistUser, artist: Artist, t
   })
 
   // download the image
-  // await downloadImage({ url }, folder, path)
+  const media = await downloadImage({ url }, folder, path)
 
-  // // send off to twitter
-  // if (twitter) {
-  //   let text = format(DateTime.now().toISO(), artist.emoji)
-  //   text = `${text}\nNew profile picture!`
-  //   await post(twitter, [newProfilePicture], text)
-  // }
+  // send off to twitter
+  if (twitter) {
+    let text = format(DateTime.now(), artist.emoji)
+    text = `${text}\nNew profile picture!`
+    await post(twitter, [media], text)
+  }
 }
 
 /**
@@ -83,12 +83,12 @@ const handleProfileBanner = async (artistUser: FabArtistUser, artist: Artist, tw
 
   // check if profile banner url exists in the database
   const count = await prisma.profileBanner.count({ where: { url } })
-  if (count >= 0) {
+  if (count >= 1) {
     return;
   }
 
   // if not, save it to the database
-  Log.success(`Found new profile banner for: ${artistUser.artist.enName}`)
+  Log.success(`Found new profile banner for: ${chalk.bold.cyan(artistUser.artist.enName)}`)
   await prisma.profileBanner.create({
     data: {
       artistId: artist.id,
@@ -98,14 +98,14 @@ const handleProfileBanner = async (artistUser: FabArtistUser, artist: Artist, tw
   })
 
   // download the image
-  // await downloadImage({ url }, folder, path)
+  const media = await downloadImage({ url }, folder, path)
 
   // // send off to twitter
-  // if (twitter) {
-  //   let text = format(DateTime.now().toISO(), artist.emoji)
-  //   text = `${text}\nNew profile banner!`
-  //   await post(twitter, [newProfileBanner], text)
-  // }
+  if (twitter) {
+    let text = format(DateTime.now(), artist.emoji)
+    text = `${text}\nNew profile banner!`
+    await post(twitter, [media], text)
+  }
 }
 
 /**

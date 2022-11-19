@@ -19,16 +19,16 @@ export const main = async (postToSocial: boolean): Promise<void> => {
   }
 
   // fetch group
-  const artists = await fetchGroupMembers()
+  const { fabArtists, dbArtists } = await fetchGroupMembers()
 
   // handle profile updates
-  await handleProfileChanges(artists)
+  await handleProfileChanges(fabArtists, dbArtists)
 
   // fetch latest messages
   const {
     messagesWithNewComments,
     filteredMessages,
-  } = await fetchMessages({ all: false })
+  } = await fetchMessages({ all: true })
 
   // handle letters/postcards
   for (const message of filteredMessages) {
@@ -43,7 +43,7 @@ export const main = async (postToSocial: boolean): Promise<void> => {
 
       // save to database
       saveToDatabase(message, media, socialPosted)
-      Log.success(`Saved message from: ${chalk.bold.cyan(message.user.artist.enName)} (Found ${media.length} images/videos)`)
+      Log.success(`Saved message from: ${chalk.bold.cyan(message.enName)} (Found ${media.length} images/videos)`)
     }
   }
 

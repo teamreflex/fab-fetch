@@ -53,10 +53,11 @@ export namespace Parsing {
   export const message = (raw: RawMessage): FabMessage => {
     return {
       ...raw,
+      groupId: raw.user ? raw.user.artist.groupId : raw.group ? raw.group.id : 0,
       isGroup: raw.isGroup === 'Y',
       createdAt: fromTimestamp(raw.createdAt),
       updatedAt: fromTimestamp(raw.updatedAt),
-      user: artistUser(raw.user),
+      user: raw.user ? artistUser(raw.user) : undefined,
       isLike: raw.isLike === 'Y',
       isSave: raw.isSave === 'Y',
       isRead: raw.isRead === 'Y',
@@ -65,6 +66,7 @@ export namespace Parsing {
       group: raw.group ? group(raw.group) : undefined,
       isNewArtistUserComment: raw.isNewArtistUserComment === 'Y',
       messageType: raw.postcard ? (raw.postcard.type === 1 ? MessageType.POSTCARD_VIDEO : MessageType.POSTCARD_IMAGE) : MessageType.LETTER,
+      enName: raw.user ? raw.user.artist.enName : raw.group ? raw.group.enName : '__unknown__',
     }
   }
 

@@ -3,11 +3,10 @@ import fetch from "node-fetch";
 import { pipeline } from "stream";
 import { promisify } from "util";
 import retry from "async-retry"
-import chalk from "chalk";
 import { DateTime } from "luxon";
-import { BruteforceAttempt, DownloadResponse, DownloadResult, FabMessage, Media, MessageType, SavedMedia, SplitUrl, URLVersion, URLVersion1Regex, URLVersion2Regex } from "../types";
+import { BruteforceAttempt, DerivedURL, DownloadResponse, DownloadResult, FabMessage, Media, MessageType, SavedMedia, SplitUrl, URLVersion, URLVersion1Regex, URLVersion2Regex } from "../types";
 import { Log } from "../util";
-import { buildUrl, parseV1Url, parseV2Url } from "./url-version";
+import { availableRegex, buildUrl, parseV1Url, parseV2Url } from "./url-version";
 
 /**
  * Recursively make the given folder.
@@ -23,14 +22,14 @@ const makeFolder = (folder: string) => {
  * @param media Media
  * @param folder string
  * @param path string
- * @returns Promise<false | void>
+ * @returns Promise<SavedMedia>
  */
-export const downloadImage = async (media: Media, folder: string, path: string): Promise<false | void> => {
+export const downloadImage = async (media: Media, folder: string, path: string): Promise<SavedMedia> => {
   makeFolder(folder)
 
   const streamPipeline = promisify(pipeline);
 
-  return await retry(
+  const result = await retry(
     async (bail: Function) => {
       // media was bruteforced
       if (media.stream) {
@@ -42,7 +41,7 @@ export const downloadImage = async (media: Media, folder: string, path: string):
       if (response.status === 403) {
         // don't retry upon 403, means image doesn't exist
         bail('404');
-        return;
+        return false;
       }
   
       if (response.body !== null) {
@@ -55,6 +54,16 @@ export const downloadImage = async (media: Media, folder: string, path: string):
       retries: 3,
     }
   );
+
+  if (result === void 0) {
+    return {
+      ...media,
+      path: path,
+    }
+  }
+
+  Log.error(`Failed to download image: ${media.url}`)
+  process.exit()
 }
 
 /**
@@ -65,7 +74,7 @@ export const downloadImage = async (media: Media, folder: string, path: string):
  */
 export const downloadMessage = async (message: FabMessage, unsavedMedia: Media[]): Promise<DownloadResponse> => {
   const downloadFolder = process.env.DOWNLOAD_FOLDER
-  const name = message.user.artist.enName
+  const name = message.enName
   const date = message.createdAt.toFormat(process.env.MONTHLY_FOLDERS === 'true' ? 'yyyy-MM' : 'yyMMdd')
   const folder = `${downloadFolder}/${name}/${date}`
 
@@ -73,11 +82,7 @@ export const downloadMessage = async (message: FabMessage, unsavedMedia: Media[]
     const savedMedia = await Promise.all(unsavedMedia.map(async (media: Media): Promise<SavedMedia> => {
       const filename = media.url.split('/').pop()
       const path = `${folder}/${filename}`
-      const res = await downloadImage(media, folder, path)
-      return {
-        ...media,
-        path: path,
-      }
+      return await downloadImage(media, folder, path)
     }))
 
     return {
@@ -125,12 +130,10 @@ const checkForValidImage = async (url: string): Promise<BruteforceAttempt> => {
  * @returns URLVersion
  */
 const getUrlVersion = (url: string, messageId: number): URLVersion => {
-  if (URLVersion1Regex.test(url)) {
-    return URLVersion.V1
-  }
-
-  if (URLVersion2Regex.test(url)) {
-    return URLVersion.V2
+  for (const regex of availableRegex) {
+    if (regex.test.test(url)) {
+      return regex.version
+    }
   }
 
   throw new Error(`Unknown URL version found: #${messageId} - ${url}`)
@@ -140,10 +143,14 @@ const getUrlVersion = (url: string, messageId: number): URLVersion => {
  * Parse the given URL for bruteforcing.
  * @param url string
  * @param messageId number
+ * @param version URLVersion | undefined
  * @returns SplitUrl
  */
-export const parseUrl = (url: string, messageId: number): SplitUrl => {
-  const version = getUrlVersion(url, messageId)
+export const parseUrl = (url: string, messageId: number, version?: URLVersion): SplitUrl => {
+  // allow a pre-set URL version (ie; for derived URLs)
+  if (!version) {
+    version = getUrlVersion(url, messageId)
+  }
 
   switch (version) {
     case URLVersion.V1:
@@ -162,14 +169,19 @@ export const parseUrl = (url: string, messageId: number): SplitUrl => {
  * @param letterId number
  * @returns string
  */
-export const deriveUrl = (timestamp: number, letterId: number): string => {
+export const deriveUrl = (timestamp: number, letterId: number): DerivedURL => {
   const time = DateTime.fromMillis(timestamp, { zone: 'Asia/Seoul' })
   let extension = '_1_f.jpg'
+  let version = URLVersion.V1
   // extensions changed after letterId 2994 (messageId 3565)
   if (letterId >= 2994) {
     extension = '_1f.jpg'
+    version = URLVersion.V2
   }
-  return `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}${extension}`
+  return {
+    url: `https://dnkvjm1f8biz3.cloudfront.net/images/letter/${letterId}/${time.toFormat('X')}_${time.toFormat('yyyyMMddHHmmss')}${extension}`,
+    version,
+  }
 }
 
 /**
@@ -181,8 +193,16 @@ export const deriveUrl = (timestamp: number, letterId: number): string => {
 export const bruteforceImages = async (message: FabMessage, media: Media[]): Promise<Media[]> => {
   const foundMedia: Media[] = []
 
+  // if there's no media to start with, derive the URL from the message timestamp
+  let derivedVersion: URLVersion | undefined
+  if (media.length === 0 && message.letter) {
+    const { url, version } = deriveUrl(message.createdAt.toMillis(), message.letter.id)
+    media.push({ url })
+    derivedVersion = version
+  }
+
   // fab only sends the first image when it isn't pulled from the individual message endpoint
-  let { version, base, timestamp, date, imageNumber, extension } = parseUrl(media[0].url, message.id)
+  let { version, base, timestamp, date, imageNumber, extension } = parseUrl(media[0].url, message.id, derivedVersion)
 
   // t.jpg indicates we're using a thumbnail as the base url
   const usingThumbnail = extension === 't.jpg'
