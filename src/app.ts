@@ -38,7 +38,7 @@ async function startup() {
       user = await fetchUser()
     }
 
-    Log.success(`Logged in as user: ${chalk.cyan.bold(user.nickName)}`)
+    Log.success(`Logged in as user: ${chalk.cyan.bold(user.nickName)} ${chalk.yellow(`(${user.id})`)}`)
     Log.success(`Points available: ${chalk.cyan.bold(user.points)}`)
   }
 
