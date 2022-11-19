@@ -30,11 +30,20 @@ export const fetchGroupMembers = async (): Promise<FabArtistUser[]> => {
 
   // parse entities
   const parsed = data.group.artistUsers.map((artistUser: any) => Parsing.artistUser(artistUser))
+  
+  // handle the group account
+  const groupUser = parsed[0]
+  groupUser.id = data.group.id
+  groupUser.nickName = data.group.enName
+  groupUser.artist.name = data.group.name
+  groupUser.artist.enName = data.group.enName
+  groupUser.artist.bannerImage = data.group.bannerImage
+  groupUser.profileImage = data.group.profileImage
 
   // save to the database
-  saveArtistsToDatabase(parsed)
+  saveArtistsToDatabase([groupUser, ...parsed])
 
-  return parsed;
+  return [groupUser, ...parsed];
 }
 
 /**
