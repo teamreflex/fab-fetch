@@ -162,5 +162,5 @@ I don't really know what MIT permits, it's just always been my default. Don't re
 
 ## Contact
 - [@rfxkairu](https://twitter.com/rfxkairu)
-- kairu@team-reflex.com
+- kyle@reflex.lol
 - Discord: Kairu#0613
