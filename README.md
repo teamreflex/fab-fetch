@@ -1,6 +1,10 @@
 # fab-fetch
 Fetch and archive content from Fab.
 
+A Dockerized version converted to Postgres and Prisma can be found on the `3.0` branch.
+
+eat shit blockberry
+
 ## Requirements
 - Only tested on Node 14
 - A Fab account, either email & password or an already generated access token.
