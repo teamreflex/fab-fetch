@@ -26,6 +26,7 @@ export interface Artist {
   statusMessage: string
   messageUpdatedAt: number
   isPublishable: string
+  isTerminated: string
   affectionateName: string
   groupName: string
   groupEnName: string

@@ -196,7 +196,7 @@ export const saveMessages = async (): Promise<Message[]> => {
   const decryptAll = process.env.DECRYPT_ALL === 'true'
 
   // fetch messages
-  const unfilteredMessages = await fetchMessages()
+  const unfilteredMessages = (await fetchMessages()).filter(m => m.user.artist.isTerminated === 'N')
 
   // we want to operate on already saved messages, but filter on new comments
   const messagesWithNewComments = unfilteredMessages.filter(m => m.isNewArtistUserComment === 'Y')
