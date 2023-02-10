@@ -6,4 +6,5 @@ tmp/
 temp/
 images/
 .env
+.env.prisma
 database.sqlite

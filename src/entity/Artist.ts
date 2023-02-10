@@ -20,4 +20,7 @@ export class Artist {
 
   @Column()
   emoji: string;
+
+  @Column({ type: "tinyint" })
+  isTerminated: boolean;
 }

@@ -12,14 +12,8 @@ import { downloadImage } from './files.js';
 import { AppDataSource } from './data-source.js';
 
 // holy shit this is so ugly
-
 export const loadArtists = async (): Promise<Artist[]> => {
-  let artists = await fetchFromDatabase();
-  if (artists.length === 0) {
-    artists = await fetchFromRemote()
-  }
-
-  return artists
+  return await fetchFromRemote()
 }
 
 const fetchFromDatabase = async (): Promise<Artist[]> => {
@@ -30,31 +24,40 @@ const fetchFromRemote = async (): Promise<Artist[]> => {
   const userId = process.env.FAB_USER_ID
   const accessToken = process.env.FAB_ACCESS_TOKEN
 
-  const { data, error } = await request('get', `/groups/1`, {
+  // fetch followed artists
+  const { data, error } = await request('get', `/users/${userId}/artists`, {
     userid: userId,
     accessToken: accessToken
   })
 
   const artists: Artist[] = []
+  const followedArtists = data.artistUsers
+  for (const remoteArtist of followedArtists) {
+    const localArtist = await AppDataSource.getRepository(Artist).findOne({
+      where: {
+        artistId: remoteArtist.id,
+      }
+    })
 
-  // add the loona user first
-  const artist = new Artist()
-  artist.artistId = data.group.id // this doesn't send the group's userId, but loona just happens to be groupId === 1 and userId === 1
-  artist.nameEn = data.group.enName
-  artist.nameKr = data.group.name
-  artist.emoji = getEmoji(data.group.id)
-  await AppDataSource.getRepository(Artist).save(artist)
-  artists.push(artist)
+    // save new artist
+    if (localArtist === null) {
+      const artist = new Artist()
+      artist.artistId = remoteArtist.id
+      artist.nameEn = remoteArtist.artist.enName
+      artist.nameKr = remoteArtist.artist.name
+      artist.emoji = getEmoji(remoteArtist.id)
+      artist.isTerminated = remoteArtist.artist.isTerminated === 'Y'
+      await AppDataSource.getRepository(Artist).save(artist)
+      artists.push(artist)
+    } else {
+      // update existing artist
+      if (localArtist.isTerminated !== (remoteArtist.artist.isTerminated === 'Y')) {
+        localArtist.isTerminated = remoteArtist.artist.isTerminated === 'Y'
+        await AppDataSource.getRepository(Artist).save(localArtist)
+      }
 
-  // then the members
-  for (const artistUser of data.group.artistUsers) {
-    const artist = new Artist()
-    artist.artistId = artistUser.id
-    artist.nameEn = artistUser.artist.enName
-    artist.nameKr = artistUser.artist.name
-    artist.emoji = getEmoji(artistUser.id)
-    await AppDataSource.getRepository(Artist).save(artist)
-    artists.push(artist)
+      artists.push(localArtist)
+    }
   }
 
   return artists
