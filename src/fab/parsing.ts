@@ -1,5 +1,5 @@
 import { RawArtist, RawArtistUser, RawGroup, RawMessage, FabArtist, FabArtistUser, FabGroup, FabMessage, RawLetter, FabLetter, RawPostcard, RawComment, FabPostcard, MessageType, FabComment } from './../types'
-import { fromTimestamp } from '../util';
+import { fromTimestamp, getName } from '../util';
 import { DateTime } from 'luxon';
 
 export namespace Parsing {
@@ -7,7 +7,9 @@ export namespace Parsing {
     return {
       ...raw,
       messageUpdatedAt: fromTimestamp(raw.messageUpdatedAt),
-      isPublishable: raw.isPublishable === 'Y,'
+      isPublishable: raw.isPublishable === 'Y',
+      isTerminated: raw.isTerminated === 'Y',
+      enName: getName(raw.artistUserId, raw.enName),
     }
   }
   

@@ -1,6 +1,6 @@
 import { getEmoji, Log } from './util';
 import { handleProfileChanges } from './fab/profile';
-import { fetchGroupMembers } from "./fab/artists"
+import { fetchFollowedArtists } from "./fab/artists"
 import { client, format, post } from "./social/twitter"
 import { fetchMessages, handleMessage, saveToDatabase } from './fab/messages';
 import chalk from 'chalk';
@@ -19,7 +19,7 @@ export const main = async (postToSocial: boolean): Promise<void> => {
   }
 
   // fetch group
-  const { fabArtists, dbArtists } = await fetchGroupMembers()
+  const { fabArtists, dbArtists } = await fetchFollowedArtists()
 
   // handle profile updates
   await handleProfileChanges(fabArtists, dbArtists)

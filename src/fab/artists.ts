@@ -1,52 +1,39 @@
+import { RawArtistUser } from './../types/fab';
 import { Artist } from "@prisma/client"
 import cloneDeep from 'lodash/cloneDeep'
 import prisma from "../database"
 import { request } from "../http"
-import { FabArtistUser, FabMessage, FetchGroupResponse, RawGroup, RawMessage } from "../types"
-import { getEmoji, Log } from "../util"
+import { FabArtistUser, FabMessage, FetchFollowedArtistsResponse, RawGroup, RawMessage } from "../types"
+import { getEmoji, getName, Log } from "../util"
 import { Parsing } from "./parsing"
 
 /**
- * Fetch all group members in one request.
+ * Fetch all followed artists in one request.
  * @returns Promise<ArtistUser[]>
  */
-export const fetchGroupMembers = async (): Promise<FetchGroupResponse> => {
-  const groupId = Number(process.env.GROUP_ID)
-  if (!groupId) {
-    Log.error('Group ID is invalid. Please check your .env file.')
-    process.exit()
-  }
-
+export const fetchFollowedArtists = async (): Promise<FetchFollowedArtistsResponse> => {
   const userId = process.env.FAB_USER_ID
   const accessToken = process.env.FAB_ACCESS_TOKEN
-  const { data, error } = await request<{ group: RawGroup }>('get', `/groups/${groupId}`, {
+  const { data, error } = await request<{ artistUsers: RawArtistUser[] }>('get', `/users/${userId}/artists`, {
     userid: userId,
     accessToken: accessToken
   })
 
   if (!data || error) {
-    Log.error(`Error fetching group members: ${error}`)
+    Log.error(`Error fetching followed artists: ${error}`)
     process.exit()
   }
 
   // parse entities
-  const parsed = data.group.artistUsers.map((artistUser: any) => Parsing.artistUser(artistUser))
-
-  // handle the group account
-  const groupUser = cloneDeep(parsed[0])
-  groupUser.id = data.group.id
-  groupUser.nickName = data.group.enName
-  groupUser.artist.name = data.group.name
-  groupUser.artist.enName = data.group.enName
-  groupUser.artist.bannerImage = data.group.bannerImage
-  groupUser.profileImage = data.group.profileImage
+  const parsed = data.artistUsers.map((artistUser: any) => Parsing.artistUser(artistUser))
 
   // save to the database or fetch if they already exist
-  const dbArtists = await saveOrFetchArtists([groupUser, ...parsed])
+  const dbArtists = await saveOrFetchArtists(parsed)
 
+  // only operate on accounts not terminated
   return {
-    fabArtists: [groupUser, ...parsed],
-    dbArtists,
+    fabArtists: parsed.filter(artist => artist.artist.isTerminated === false),
+    dbArtists: dbArtists.filter(artist => artist.isTerminated === false),
   };
 }
 
@@ -72,7 +59,7 @@ const saveOrFetchArtists = async (artistUsers: FabArtistUser[]): Promise<Artist[
       artist = await prisma.artist.create({
         data: {
           fabArtistId: artistUser.id,
-          nameEn: artistUser.artist.enName,
+          nameEn: getName(artistUser.id, artistUser.artist.enName),
           nameKr: artistUser.artist.name,
           emoji: getEmoji(artistUser.id),
         }

@@ -14,6 +14,7 @@ export type FabArtist = {
   statusMessage: string
   messageUpdatedAt: DateTime
   isPublishable: boolean
+  isTerminated: boolean
   affectionateName: string
   groupName: string
   groupEnName: string

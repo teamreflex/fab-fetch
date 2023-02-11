@@ -36,7 +36,7 @@ export type LoginResponse = {
   }
 }
 
-export type FetchGroupResponse = {
+export type FetchFollowedArtistsResponse = {
   fabArtists: FabArtistUser[]
   dbArtists: Artist[]
 }
