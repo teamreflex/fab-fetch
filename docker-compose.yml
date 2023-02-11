@@ -1,8 +1,10 @@
-version: '3.8'
+version: '3.7'
+
+name: fab-fetch
 
 services:
   postgres:
-    container_name: db
+    container_name: postgres
     image: postgres
     restart: unless-stopped
     environment:
@@ -25,6 +27,18 @@ services:
       - postgres
     volumes:
       - ./data:/app/data
+
+  migrate:
+    container_name: fab-fetch-migrate
+    profiles:
+      - migrate
+    build: .
+    command: sh -c "npx prisma migrate deploy && npm run migrate"
+    user: node
+    restart: 'no'
+    depends_on:
+      - postgres
+    tty: true
 
 networks:
   default:

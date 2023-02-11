@@ -26,18 +26,20 @@ $ npx prisma migrate deploy
 $ npm start
 ```
 
-## Updating from 2.0/SQLite
+## Updating from 2.0 & SQLite
 
 1. Update your environment with any new or removed variables, such as `DATABASE_URL`.
 2. Move your download folder into `data/`. This is the volume Docker uses and must be created on the host system, or else there will be permission issues.
-3. Start the database container:
-    - `docker compose up --wait postgres`
-4. Run the migration container to import your SQLite database into Postgres:
-    - `docker compose up -f docker-compose.migrate.yml`
+3. Run the migration container to import your SQLite database into Postgres:
+    - `docker compose run migrate`
+4. Using a database explorer, ensure everything is correct and intact.
 5. Start the bot container:
     - `docker compose up`
 
 ## Environment Variables
+<details>
+<summary>Updated 12/02/23</summary>
+
 ### `DATABASE_URL` (integer)
 Postgres database URL. When running in Docker, the host should be `postgres`, when running locally the host should be `localhost`.
 
@@ -69,7 +71,7 @@ Toggles whether or not the bot just outright pays for every post and decrypts th
 Toggles whether or not to fetch the last 10 messages per artist (`true`), or just the last 10 messages across all artists in the app (`false`).
 
 ### `PAY_FOR_USER_IDS` (string)
-Provide a comma delimited string of user IDs to pay for. Defaults to `"4,7"` which is HaSeul and Kim Lip (as of 24/9/22).
+Provide a comma delimited string of user IDs to pay for. Defaults to `"85354"` which is Kim Lip (as of 11/02/2023).
 
 ### `VOICE_COMMENTS_ENABLED` (boolean)
 Saves voice comment audio files or not. These get placed in the `voice_comments/` folder, and is affected by the `MONTHLY_FOLDERS` option.
@@ -80,7 +82,12 @@ Changes the folder structure. Enabled saves images to a monthly folder structure
 ### `PAY_ON_FALLBACK` (boolean)
 If a message is found with no media attached, enabling this option forces the bot to pay for the message as a fallback measure. Disabled means it just skips and saves to the database.
 
-## Encryption ~ June 2022
+</details>
+
+## Notes
+<details>
+<summary>Decryping content URLs</summary>
+
 Neowiz has started to encrypt image URLs for thumbnails, letter images, postcard videos and postcard images.
 
 It's using AES256 CBC PKCS5, and the secret key is built up from several parts:
@@ -100,7 +107,11 @@ The relevant strings can be found in `src/encryption.ts`. A caveat to this is th
 
 The API also prefixes and suffixes the URLs with a 6 digit long random number, this results in the hash changing upon every request, likely a obfuscation technique to throw people off.
 
-## How?
+</details>
+
+<details>
+<summary>Bruteforcing content URLs on CloudFront</summary>
+
 Because all content is just on CloudFront, and each message has either the first image (letter), or the thumbnail (postcard) attached. Using these, we can bruteforce the rest of the message.
 
 The way this works is that for letters (standard image post), the URL is structured like so:
@@ -128,9 +139,12 @@ https://dnkvjm1f8biz3.cloudfront.net/images/letter/207/1645746549_IMAGE_20220225
 ```
 It starts off much the same until the final segment. I have no idea what it could possibly correspond to, so for now I've made the bot just check for any URL including `_IMAGE_`, and it will just pay for that post. Thankfully it's just HaSeul and Yves for now, but Neowiz could start randomizing images whenever they wanted, and it would be trivial to do.
 
-## How? (update: 16/03/22)
+</details>
 
-On March 15th, Neowiz updated the API so messages now have a `thumbnail` property.
+<details>
+<summary>Deriving content URLs via timestamps</summary>
+
+On March 15th 2022, Neowiz updated the API so messages now have a `thumbnail` property.
 
 Pre-update messages have had their thumbnail properties set to the first image URL, and the bot will default to checking for this. Post-update messages for some reason have no thumbnail and an empty images array. This is assumingly a bug, as it results in no thumbnails in the app.
 
@@ -157,13 +171,16 @@ This URL acts as the starting point for the bruteforce function, and it suffers 
 
 Because there's no longer any URLs by default and it's unable to check the string for markers of an Android post, the bot checks for a userId of 4 (HaSeul) and defaults to paying for those posts. Yves recently swapped back to an iPhone, so for now it's hardcoded. In the event Yves swaps back, the bot will simply skip anything with no media, much like it does already for the one message that was sent with just text.
 
-## Caveats & Considerations
+</details>
+
+<details>
+<summary>Things to consider</summary>
+
 - It fetches artists from the followed artists endpoint, so make sure your account is following the artists you want to archive.
     - It also skips over any artists whose accounts have been terminated
 - There is no need to go manually view a post before the bot reads it.
     - The "this message requires points to open" is client side.
     - As soon as a post is retreived from the API, their backend deducts points.
-    - Because of this, anything you want to do with the API can be entirely automated.
 - The user-agent requires the latest Android app version number. They have a little bit of leeway in terms of enforcing switching over during update rollouts, but requests will fail once they fully switch everything over.
     - The bot will scrape the Fab Play Store page for the latest version, and insert it into the user-agent on every request.
     - It only does this in production/non-dev mode, so make sure `FAB_VERSION` is set to the latest while in dev
@@ -172,10 +189,12 @@ Because there's no longer any URLs by default and it's unable to check the strin
     - Because of the uncertainty, just use common sense. Personally, I have my access token in the environment, as if it gets in a crash loop and keeps spamming requests, at least it'll just look like I'm spamming refresh on the home screen rather than spamming login requests.
 - Neowiz have made some REST API 101 rookie mistakes already, so if you find anything suspicious then just report it. They're quick to respond.
 
+</details>
+
 ## License
 I don't really know what MIT permits, it's just always been my default. Don't really care what you do, just give credit I guess.
 
 ## Contact
 - [@rfxkairu](https://twitter.com/rfxkairu)
-- kairu@team-reflex.com
+- kyle@reflex.lol
 - Discord: Kairu#0613
