@@ -13,6 +13,7 @@ import { FabUser, LetterTextObject, FabMessage, ParsedMessage, PostcardType, Dow
 import { decryptString } from './encryption.js'
 import { AppDataSource } from './data-source.js'
 import { scanComments } from './comments.js'
+import { getName } from './names.js';
 
 const parseMessage = (message: FabMessage): ParsedMessage => {
   let text = ''
@@ -94,7 +95,7 @@ const parseUser = (message: FabMessage): FabUser => {
     id: message.userId,
     nickName: message.user.nickName,
     name: message.user.artist.name,
-    enName: message.user.artist.enName,
+    enName: getName(message.userId, message.user.artist.enName),
     profileImage: message.user.profileImage,
     bannerImage: message.user.artist.bannerImage,
     statusMessage: message.user.artist.statusMessage,
@@ -226,7 +227,8 @@ export const saveMessages = async (): Promise<Message[]> => {
 
     // need to fetch and pay for android posts
     // either fetch, pay for and decrypt posts or just bruteforce, depending on config
-    console.info(chalk.green('Fetching message from:', chalk.bold.cyan(fabMessage.user?.artist.enName || 'LOONA')))
+    const name = getName(fabMessage.userId, fabMessage.user?.artist.enName || 'LOONA')
+    console.info(chalk.green('Fetching message from:', chalk.bold.cyan(name)))
     let parsed: ParsedMessage;
     try {
       parsed = (isAndroid || decryptAll) ? await payForMessage(fabMessage) : await bruteforceImages(parseMessage(fabMessage))

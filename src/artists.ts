@@ -10,6 +10,7 @@ import { FabUser, TwitterAccount } from "./types.js";
 import chalk from 'chalk';
 import { downloadImage } from './files.js';
 import { AppDataSource } from './data-source.js';
+import { getName } from './names.js';
 
 // holy shit this is so ugly
 export const loadArtists = async (): Promise<Artist[]> => {
@@ -43,7 +44,7 @@ const fetchFromRemote = async (): Promise<Artist[]> => {
     if (localArtist === null) {
       const artist = new Artist()
       artist.artistId = remoteArtist.id
-      artist.nameEn = remoteArtist.artist.enName
+      artist.nameEn = getName(remoteArtist.id, remoteArtist.artist.enName)
       artist.nameKr = remoteArtist.artist.name
       artist.emoji = getEmoji(remoteArtist.id)
       artist.isTerminated = remoteArtist.artist.isTerminated === 'Y'
