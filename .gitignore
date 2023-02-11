@@ -4,7 +4,6 @@ node_modules/
 build/
 tmp/
 temp/
-images/
+data/*
 .env
 database.sqlite
-data

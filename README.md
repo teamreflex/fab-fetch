@@ -15,16 +15,31 @@ $ nano .env # Fill in your details here, and update the user-agent
 ```
 
 ## Running
+Docker will run any database migrations on start.
 ### Docker
 ```bash
 $ docker compose up
 ```
 ### Node
 ```bash
+$ npx prisma migrate deploy
 $ npm start
 ```
 
+## Updating from 2.0/SQLite
+
+1. Update your environment with any new or removed variables, such as `DATABASE_URL`.
+2. Move your download folder into `data/`. This is the volume Docker uses and must be created on the host system, or else there will be permission issues.
+3. Start the database container:
+    - `docker compose up --wait postgres`
+4. Run the migration container to import your SQLite database into Postgres:
+    - `docker compose up -f docker-compose.migrate.yml`
+5. Start the bot container:
+    - `docker compose up`
+
 ## Environment Variables
+### `DATABASE_URL` (integer)
+Postgres database URL. When running in Docker, the host should be `postgres`, when running locally the host should be `localhost`.
 
 ### `TIMEOUT` (integer)
 Performs message fetching every x milliseconds (`60000` equals 1 minute).
@@ -43,9 +58,6 @@ Don't touch this.
 
 ### `ENVIRONMENT` (string: `prod` | `dev`)
 Toggles whether or not to run once or to run on an interval as set in the env. The `run dev` commands have been removed.
-
-### `GROUP_ID` (integer)
-Group from Fab to fetch from. Defaults to 1 (LOONA).
 
 ### `TWITTER_ENABLED` (boolean)
 Toggles posting for both the archives and profiles accounts. The `-without-posting` commands have been removed.
@@ -146,18 +158,15 @@ This URL acts as the starting point for the bruteforce function, and it suffers 
 Because there's no longer any URLs by default and it's unable to check the string for markers of an Android post, the bot checks for a userId of 4 (HaSeul) and defaults to paying for those posts. Yves recently swapped back to an iPhone, so for now it's hardcoded. In the event Yves swaps back, the bot will simply skip anything with no media, much like it does already for the one message that was sent with just text.
 
 ## Caveats & Considerations
+- It fetches artists from the followed artists endpoint, so make sure your account is following the artists you want to archive.
+    - It also skips over any artists whose accounts have been terminated
 - There is no need to go manually view a post before the bot reads it.
     - The "this message requires points to open" is client side.
     - As soon as a post is retreived from the API, their backend deducts points.
     - Because of this, anything you want to do with the API can be entirely automated.
 - The user-agent requires the latest Android app version number. They have a little bit of leeway in terms of enforcing switching over during update rollouts, but requests will fail once they fully switch everything over.
-    - ~~The bot will scrape the Fab Play Store page for the latest version, and insert it into the user-agent on every request.~~
-    - ~~It only does this in production/non-dev mode, so make sure `FAB_VERSION` is set to the latest while in dev.~~
-    - Support for fetching the latest version number from the Play Store has been removed. As of late May, it's now hidden behind a modal that can't be scraped. `FAB_VERSION` is now **required**.
-- As of 2.0, it no longer judges whether or not to download/post to Twitter on if the image has been downloaded, but stores everything in a sqlite database.
-    - It also pulls posts in by fetching each artist's messages endpoint, then skipping any messages that exist in the database, thus cutting down on the amount of image bruteforcing going on.
-    - Due to using the artist endpoint, it may find in-review messages. Neowiz were recently alerted to this leaking posts, but I'm not 100% sure if that was entirely fixed.
-- There's little error handling. I run it using pm2 so it'll just restart upon an error crash, like during maintenance periods.
+    - The bot will scrape the Fab Play Store page for the latest version, and insert it into the user-agent on every request.
+    - It only does this in production/non-dev mode, so make sure `FAB_VERSION` is set to the latest while in dev
 - Twitter rate limiting when enabling Twitter posting, while having more than 10~ posts to update will also crash it.
 - I have no idea if they have rate limiting or account banning or what. I've been running a couple bots using the same account credentials since the weekend the app launched and everything has been fine, but Neowiz could quite easily block Android emulator usage/user-agents, accounts querying on intervals etc.
     - Because of the uncertainty, just use common sense. Personally, I have my access token in the environment, as if it gets in a crash loop and keeps spamming requests, at least it'll just look like I'm spamming refresh on the home screen rather than spamming login requests.

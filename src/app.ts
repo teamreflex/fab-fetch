@@ -1,3 +1,4 @@
+import { makeFolder } from './fab/files';
 import 'dotenv/config'
 import chalk from 'chalk'
 import { fetchUser, login } from './http/auth'
@@ -17,6 +18,14 @@ async function startup() {
   if (devMode) {
     Log.dev('Development mode')
   }
+
+  // setup the download folder
+  if (process.env.DOWNLOAD_FOLDER) {
+    process.env.DOWNLOAD_FOLDER = 'data/' + process.env.DOWNLOAD_FOLDER
+  } else {
+    process.env.DOWNLOAD_FOLDER = 'data/images'
+  }
+  makeFolder(process.env.DOWNLOAD_FOLDER)
 
   await prisma.$connect()
   Log.success('Database connected!')

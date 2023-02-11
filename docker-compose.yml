@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.8'
 
 services:
   postgres:
@@ -12,17 +12,23 @@ services:
       POSTGRES_PORT: 5432
     ports:
       - '5432:5432'
+    volumes:
+      - postgres:/var/lib/postgresql/data
 
   bot:
     container_name: fab-fetch
     build: .
-    command: ["bash", "start.sh"]
+    command: sh -c "npx prisma migrate deploy && npm start"
     restart: unless-stopped
+    user: node
     depends_on:
       - postgres
     volumes:
-      - ./data:/app/data:z
+      - ./data:/app/data
 
 networks:
   default:
     driver: bridge
+
+volumes:
+  postgres:

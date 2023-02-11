@@ -13,7 +13,7 @@ import { availableRegex, buildUrl, parseV1Url, parseV2Url } from "./url-version"
  * @param folder string
  * @returns boolean
  */
-const makeFolder = (folder: string) => {
+export const makeFolder = (folder: string) => {
   return !existsSync(folder) && mkdirSync(folder, { recursive: true })
 }
 
