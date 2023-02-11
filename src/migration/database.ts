@@ -9,6 +9,7 @@ export const saveArtist = async (data: any): Promise<Artist> => {
       nameEn: data.nameEn,
       nameKr: data.nameKr,
       emoji: data.emoji,
+      isTerminated: data.isTerminated === 1,
     }
   })
 }

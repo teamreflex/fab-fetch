@@ -1,4 +1,4 @@
-FROM node:18.12.0
+FROM node:18.13.0
 
 ENV WORK_DIR=/app
 RUN mkdir -p ${WORK_DIR}

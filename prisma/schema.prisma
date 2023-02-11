@@ -21,6 +21,7 @@ model Artist {
   nameEn          String
   nameKr          String
   emoji           String
+  isTerminated    Boolean           @default(false)
 }
 
 enum MessageType {
