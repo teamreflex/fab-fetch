@@ -7,7 +7,7 @@ import { Parsing } from "./parsing"
 import { fetchArtistMessages } from './artists';
 import chalk from 'chalk';
 import { decryptString } from './encryption';
-import { Message } from '@prisma/client';
+import { Artist, Message } from '@prisma/client';
 import { bruteforceImages, downloadMessage } from './files';
 
 /**
@@ -28,9 +28,7 @@ export const fetchLatestMessages = async (): Promise<FabMessage[]> => {
     process.exit()
   }
 
-  return data.messages
-    .map((message: RawMessage) => Parsing.message(message))
-    .filter((message: FabMessage) => message.groupId === Number(process.env.GROUP_ID))
+  return data.messages.map((message: RawMessage) => Parsing.message(message))
 }
 
 /**
@@ -51,19 +49,25 @@ export const fetchAllMessages = async (): Promise<FabMessage[]> => {
 
 /**
  * Fetches latest messages and filters.
+ * @params options FetchMessagesOptions | undefined
  * @returns Promise<MessageResponse>
  */
 export const fetchMessages = async (options?: FetchMessagesOptions): Promise<MessageResponse> => {
   const latestMessages = options?.all ? await fetchAllMessages() : await fetchLatestMessages()
-  const messagesWithNewComments = latestMessages.filter(m => m.isNewArtistUserComment)
+
+  // load artists from the database to filter out unfollowed artists
+  const artists = await prisma.artist.findMany()
+  const artistMessages = latestMessages.filter(m => artists.find(a => a.fabArtistId === m.userId) !== undefined)
+
+  const messagesWithNewComments = artistMessages.filter(m => m.isNewArtistUserComment)
   const inDatabase = await prisma.message.findMany({
     where: {
       fabMessageId: {
-        in: latestMessages.map(m => m.id)
+        in: artistMessages.map(m => m.id)
       }
     }
   })
-  const filteredMessages = latestMessages.filter(message => inDatabase.find(m => m.fabMessageId === message.id) === undefined)
+  const filteredMessages = artistMessages.filter(message => inDatabase.find(m => m.fabMessageId === message.id) === undefined)
 
   return {
     latestMessages,
