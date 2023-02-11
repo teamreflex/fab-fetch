@@ -18,6 +18,8 @@ export const main = async (postToSocial: boolean): Promise<void> => {
     twitter = client()
   }
 
+  Log.info(`Fetching artists and messages...`)
+
   // fetch group
   const { fabArtists, dbArtists } = await fetchFollowedArtists()
 
