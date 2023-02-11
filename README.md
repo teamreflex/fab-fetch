@@ -39,6 +39,7 @@ $ npm start
 ## Environment Variables
 <details>
 <summary>Updated 12/02/23</summary>
+<hr>
 
 ### `DATABASE_URL` (integer)
 Postgres database URL. When running in Docker, the host should be `postgres`, when running locally the host should be `localhost`.
@@ -87,6 +88,7 @@ If a message is found with no media attached, enabling this option forces the bo
 ## Notes
 <details>
 <summary>Decryping content URLs</summary>
+<hr>
 
 Neowiz has started to encrypt image URLs for thumbnails, letter images, postcard videos and postcard images.
 
@@ -111,6 +113,7 @@ The API also prefixes and suffixes the URLs with a 6 digit long random number, t
 
 <details>
 <summary>Bruteforcing content URLs on CloudFront</summary>
+<hr>
 
 Because all content is just on CloudFront, and each message has either the first image (letter), or the thumbnail (postcard) attached. Using these, we can bruteforce the rest of the message.
 
@@ -143,6 +146,7 @@ It starts off much the same until the final segment. I have no idea what it coul
 
 <details>
 <summary>Deriving content URLs via timestamps</summary>
+<hr>
 
 On March 15th 2022, Neowiz updated the API so messages now have a `thumbnail` property.
 
@@ -175,6 +179,7 @@ Because there's no longer any URLs by default and it's unable to check the strin
 
 <details>
 <summary>Things to consider</summary>
+<hr>
 
 - It fetches artists from the followed artists endpoint, so make sure your account is following the artists you want to archive.
     - It also skips over any artists whose accounts have been terminated
