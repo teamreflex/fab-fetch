@@ -7,6 +7,7 @@ import { Comment, CommentType } from './entity/Comment.js'
 import { Message } from './entity/Message.js'
 import { downloadImage } from './files.js'
 import { request } from './http.js'
+import { getName } from './names.js'
 import { FabComment, DownloadResult, FabMessage, VoiceCommentDownloadResult } from './types.js'
 
 const fetchCommentThread = async (messageId: number): Promise<FabComment[]> => {
@@ -29,7 +30,7 @@ const fetchCommentThread = async (messageId: number): Promise<FabComment[]> => {
 export const buildFolderPath = (comment: FabComment, decryptedUrl: string) => {
   // build folder structure
   const downloadFolder = process.env.DOWNLOAD_FOLDER
-  const name = comment.enName
+  const name = getName(comment.userId, comment.enName)
   const date = DateTime.fromMillis(comment.createdAt, { zone: 'Asia/Seoul' }).toFormat(process.env.MONTHLY_FOLDERS === 'true' ? 'yyyy-MM' : 'yyMMdd')
   const folder = `${downloadFolder}/${name}/${date}/voice_comments`
   const pathSplit = decryptedUrl.split('/')
