@@ -18,6 +18,7 @@ const mapping: Record<number, string> = {
   85355: 'JinSoul',
   85357: 'Choerry',
   85356: 'HeeJin',
+  91292: 'HyunJin',
 }
 
 export const getName = (id: number, fallback: string): string => {
