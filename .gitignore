@@ -9,3 +9,4 @@ images/
 .env.*
 .env.prisma
 database.sqlite
+database.bak
