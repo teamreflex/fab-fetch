@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, Relation } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Relation,
+} from "typeorm";
 import { Artist } from "./Artist.js";
 
 @Entity()
@@ -6,7 +12,7 @@ export class ProfilePicture {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Artist, artist => artist.messages)
+  @ManyToOne(() => Artist, (artist) => artist.messages)
   artist: Relation<Artist>;
 
   @Column()

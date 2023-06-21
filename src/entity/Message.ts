@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, Relation } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  Relation,
+} from "typeorm";
 import { Artist } from "./Artist.js";
 import { Comment } from "./Comment.js";
 import { Image } from "./Image.js";
@@ -13,23 +20,23 @@ export class Message {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToMany(() => Comment, comment => comment.message, {
-    cascade: true
+  @OneToMany(() => Comment, (comment) => comment.message, {
+    cascade: true,
   })
   comments: Relation<Comment[]>;
 
-  @OneToMany(() => Image, image => image.message, {
-    cascade: true
+  @OneToMany(() => Image, (image) => image.message, {
+    cascade: true,
   })
   images: Relation<Image[]>;
 
-  @ManyToOne(() => Artist, artist => artist.messages)
+  @ManyToOne(() => Artist, (artist) => artist.messages)
   artist: Relation<Artist>;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   messageId: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: "int" })
   memberId: number;
 
   @Column()
@@ -42,8 +49,8 @@ export class Message {
   createdAt: string;
 
   @Column({
-    type: 'simple-enum',
-    enum: MessageType
+    type: "simple-enum",
+    enum: MessageType,
   })
   type: MessageType;
 
