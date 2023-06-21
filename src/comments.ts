@@ -145,17 +145,24 @@ export const scanComments = async (messages: FabMessage[]): Promise<void> => {
     return;
   }
 
+  // just lgging
+  if (process.env.VOICE_COMMENTS_ENABLED === "true") {
+    console.info(
+      chalk.green(`Scanning ${messages.length} messages for voice comments...`)
+    );
+  }
+
+  if (process.env.IMAGE_COMMENTS_ENABLED === "true") {
+    console.info(
+      chalk.green(`Scanning ${messages.length} messages for image comments...`)
+    );
+  }
+
   for (const message of messages) {
     const comments = await fetchCommentThread(message.id);
 
     // process voice comments
     if (process.env.VOICE_COMMENTS_ENABLED === "true") {
-      console.info(
-        chalk.green(
-          `Scanning ${messages.length} messages for voice comments...`
-        )
-      );
-
       // fetch all comments with a valid voiceComment field
       const voiceComments = await findRelevantComments(
         comments,
@@ -184,12 +191,6 @@ export const scanComments = async (messages: FabMessage[]): Promise<void> => {
 
     // process image comments
     if (process.env.IMAGE_COMMENTS_ENABLED === "true") {
-      console.info(
-        chalk.green(
-          `Scanning ${messages.length} messages for image comments...`
-        )
-      );
-
       // fetch all comments with a valid imageComment field
       const imageComments = await findRelevantComments(
         comments,
