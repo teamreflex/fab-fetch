@@ -19,6 +19,7 @@ const mapping: Record<number, string> = {
   85357: "🦇",
   85356: "🐰",
   91292: "🐱",
+  93441: "🕊",
 };
 
 export const getEmoji = (id: number): string => {
