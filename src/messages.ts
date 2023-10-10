@@ -232,7 +232,7 @@ export const saveMessages = async (): Promise<Message[]> => {
 
   // filter out anything already in the database and anything without media
   // have to chunk this as sqlite doesn't like loading everything in at once
-  const filteredMessages = [];
+  const filteredMessages: FabMessage[] = [];
   const chunkSize = 250;
   for (let i = 0; i < unfilteredMessages.length; i += chunkSize) {
     const chunk = unfilteredMessages.slice(i, i + chunkSize);
@@ -265,12 +265,16 @@ export const saveMessages = async (): Promise<Message[]> => {
       fabMessage.user?.artist.enName || "LOONA"
     );
     console.info(chalk.green("Fetching message from:", chalk.bold.cyan(name)));
+
+    const isTextPost =
+      fabMessage.letter !== undefined && fabMessage.letter.thumbnail === "";
+    const shouldPay = isAndroid || decryptAll || isTextPost;
+
     let parsed: ParsedMessage;
     try {
-      parsed =
-        isAndroid || decryptAll
-          ? await payForMessage(fabMessage)
-          : await bruteforceImages(parseMessage(fabMessage));
+      parsed = shouldPay
+        ? await payForMessage(fabMessage)
+        : await bruteforceImages(parseMessage(fabMessage));
     } catch (e) {
       if (e.message.includes("Malformed UTF-8 data")) {
         console.info(chalk.red("Could not decrypt message, skipping"));
@@ -283,7 +287,7 @@ export const saveMessages = async (): Promise<Message[]> => {
     // no media found
     if (parsed.media.length === 0) {
       // try paying for the message
-      if (process.env.PAY_ON_FALLBACK === "true") {
+      if (process.env.PAY_ON_FALLBACK === "true" && !shouldPay) {
         console.info(
           chalk.bold.yellow("No media found, trying to pay for message")
         );
@@ -293,6 +297,9 @@ export const saveMessages = async (): Promise<Message[]> => {
       // if there's still no media, save to the db and skip, otherwise continue and download
       if (parsed.media.length === 0) {
         await buildMessage(parsed);
+        console.info(
+          chalk.bold.yellow("No media found, saving to database and moving on")
+        );
         continue;
       }
     }
