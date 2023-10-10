@@ -22,7 +22,10 @@ import { AppDataSource } from "./data-source.js";
 import { scanComments } from "./comments.js";
 import { getName } from "./names.js";
 
-const parseMessage = (message: FabMessage): ParsedMessage => {
+const parseMessage = (
+  message: FabMessage,
+  isTextPost: boolean = false
+): ParsedMessage => {
   let text = "";
   const parsedJson =
     message.letter && message.letter.text
@@ -52,7 +55,7 @@ const parseMessage = (message: FabMessage): ParsedMessage => {
     }
 
     // and finally, have to derive the url from the message createdAt timestamp
-    if (media.length === 0) {
+    if (media.length === 0 && !isTextPost) {
       media = [{ url: deriveUrl(message.createdAt, message.letter.id) }];
     }
   }
@@ -268,7 +271,15 @@ export const saveMessages = async (): Promise<Message[]> => {
 
     const isTextPost =
       fabMessage.letter !== undefined && fabMessage.letter.thumbnail === "";
-    const shouldPay = isAndroid || decryptAll || isTextPost;
+    const shouldPay = isAndroid || decryptAll;
+
+    if (isTextPost) {
+      await buildMessage(parseMessage(fabMessage, true));
+      console.info(
+        chalk.bold.yellow("No media found, saving to database and moving on")
+      );
+      continue;
+    }
 
     let parsed: ParsedMessage;
     try {
